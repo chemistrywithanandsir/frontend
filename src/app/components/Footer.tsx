@@ -31,6 +31,20 @@ export function Footer() {
             >
               Terms &amp; Conditions
             </Link>
+            <span className="text-slate-600">•</span>
+            <Link
+              to="/refund-policy"
+              className="hover:text-cyan-300 transition-colors"
+            >
+              Refund &amp; Cancellation
+            </Link>
+            <span className="text-slate-600">•</span>
+            <Link
+              to="/contact"
+              className="hover:text-cyan-300 transition-colors"
+            >
+              Contact Us
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

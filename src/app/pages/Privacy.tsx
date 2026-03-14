@@ -14,16 +14,14 @@ export function PrivacyPage() {
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             Privacy Policy
           </h1>
-          <p className="text-xs text-slate-400">
-            Last updated: {currentYear}
-          </p>
+          <p className="text-xs text-slate-400">Last updated: {currentYear}</p>
         </header>
 
         <section className="space-y-4 text-sm leading-relaxed text-slate-200">
           <p>
             This Privacy Policy explains how Chemistry By Anand (&quot;we&quot;, &quot;us&quot;,
             &quot;our&quot;) collects, uses and protects your information when you use our
-            website, dashboard and learning tools.
+            website, dashboard, learning tools and payment features.
           </p>
 
           <h2 className="mt-6 text-base font-semibold text-slate-50">
@@ -42,6 +40,13 @@ export function PrivacyPage() {
               <span className="font-medium">Device &amp; technical data</span> –
               basic browser and usage information used for analytics and to keep
               the platform secure.
+            </li>
+            <li>
+              <span className="font-medium">Payment information</span> – limited
+              payment‑related details (such as transaction IDs, payment status
+              and purchased bundles) when you buy paid content. Sensitive card
+              or UPI details are collected and processed directly by our payment
+              gateway partner, Razorpay, and are never stored on our servers.
             </li>
           </ul>
 
@@ -69,19 +74,31 @@ export function PrivacyPage() {
           </h2>
           <p>
             We store your data securely using trusted third‑party services (such
-            as Supabase and cloud providers). Reasonable technical and
-            organisational safeguards are used to protect your data, but no
-            online system can be guaranteed 100% secure.
+            as Supabase, cloud infrastructure providers and Razorpay). Reasonable
+            technical and organisational safeguards are used to protect your
+            data, but no online system can be guaranteed 100% secure.
           </p>
 
           <h2 className="mt-6 text-base font-semibold text-slate-50">
             Third‑party services
           </h2>
           <p>
-            We use third‑party tools for authentication, analytics, file
-            storage and payments. These providers may process limited data
-            subject to their own privacy policies.
+            We use third‑party tools for authentication, analytics, file storage
+            and payments. These providers may process limited data subject to
+            their own privacy policies:
           </p>
+          <ul className="list-disc list-inside space-y-1 text-slate-200">
+            <li>
+              <span className="font-medium">Supabase</span> – for
+              authentication, database storage and analytics.
+            </li>
+            <li>
+              <span className="font-medium">Razorpay</span> – for secure online
+              payments in India. Razorpay may collect your card, UPI or other
+              payment instrument details directly on their pages / SDKs. We do
+              not see or store your full card number, CVV or UPI PIN.
+            </li>
+          </ul>
 
           <h2 className="mt-6 text-base font-semibold text-slate-50">
             Your choices
@@ -99,8 +116,14 @@ export function PrivacyPage() {
           </h2>
           <p>
             If you have any questions about this Privacy Policy or how your data
-            is handled, please reach out through the contact options provided in
-            your dashboard.
+            is handled, please email us at{" "}
+            <a
+              href="mailto:chemistrywithanandsir@gmail.com"
+              className="text-cyan-300 underline"
+            >
+              chemistrywithanandsir@gmail.com
+            </a>
+            .
           </p>
         </section>
       </div>

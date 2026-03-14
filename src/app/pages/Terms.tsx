@@ -14,17 +14,15 @@ export function TermsPage() {
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             Terms &amp; Conditions
           </h1>
-          <p className="text-xs text-slate-400">
-            Last updated: {currentYear}
-          </p>
+          <p className="text-xs text-slate-400">Last updated: {currentYear}</p>
         </header>
 
         <section className="space-y-4 text-sm leading-relaxed text-slate-200">
           <p>
-            These Terms &amp; Conditions (&quot;Terms&quot;) govern your use of the Chemistry
-            By Anand website, dashboard and learning tools (collectively, the
-            &quot;Platform&quot;). By accessing or using the Platform you agree to be
-            bound by these Terms.
+            These Terms &amp; Conditions (&quot;Terms&quot;) govern your use of the
+            Chemistry By Anand website, dashboard and learning tools
+            (collectively, the &quot;Platform&quot;). By accessing or using the
+            Platform you agree to be bound by these Terms.
           </p>
 
           <h2 className="mt-6 text-base font-semibold text-slate-50">
@@ -62,12 +60,30 @@ export function TermsPage() {
           </p>
 
           <h2 className="mt-6 text-base font-semibold text-slate-50">
-            Payments &amp; refunds
+            Payments, pricing &amp; refunds
           </h2>
           <p>
-            Some content or bundles may be paid. Prices and offers are subject
-            to change. Refunds, if any, are handled according to the refund
-            rules communicated at the time of purchase.
+            Some content or bundles on the Platform are paid. Prices, discounts
+            and offers are subject to change at our discretion. Online payments
+            are processed securely via Razorpay; by completing a payment you
+            agree to Razorpay&apos;s own terms and privacy policy in addition to
+            ours.
+          </p>
+          <p className="mt-2">
+            Because our products are digital in nature (online notes, PYQs,
+            test access, etc.), access is normally granted immediately after
+            successful payment. We therefore do not offer refunds once access
+            has been provided, except in limited situations such as duplicate
+            payments or a clear technical problem preventing access to the
+            purchased content. Any such requests must be raised by email within
+            7 days of the transaction and will be handled according to our{" "}
+            <a
+              href="/refund-policy"
+              className="text-cyan-300 underline"
+            >
+              Refund &amp; Cancellation Policy
+            </a>
+            .
           </p>
 
           <h2 className="mt-6 text-base font-semibold text-slate-50">
@@ -93,12 +109,17 @@ export function TermsPage() {
             you violate these Terms or misuse the Platform.
           </p>
 
-          <h2 className="mt-6 text-base font-semibold text-slate-50">
-            Contact
-          </h2>
+          <h2 className="mt-6 text-base font-semibold text-slate-50">Contact</h2>
           <p>
-            If you have questions about these Terms, please reach out using the
-            contact options available in your dashboard.
+            If you have questions about these Terms or any purchase, please
+            email us at{" "}
+            <a
+              href="mailto:chemistrywithanandsir@gmail.com"
+              className="text-cyan-300 underline"
+            >
+              chemistrywithanandsir@gmail.com
+            </a>
+            .
           </p>
         </section>
       </div>

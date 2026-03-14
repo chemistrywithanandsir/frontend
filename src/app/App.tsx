@@ -15,6 +15,8 @@ import { ExamWeightagePage } from "./pages/ExamWeightage";
 import { CoursesPage } from "./pages/courses";
 import { PrivacyPage } from "./pages/Privacy";
 import { TermsPage } from "./pages/Terms";
+import { RefundPolicyPage } from "./pages/RefundPolicy";
+import { ContactPage } from "./pages/Contact";
 import {
   PyqExamPage,
   PyqChemistryPage,
@@ -112,6 +114,8 @@ export default function App() {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/refund-policy" element={<RefundPolicyPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/notes" element={<Navigate to="/dashboard/notes" replace />} />
           <Route path="/pyq" element={<Navigate to="/dashboard/pyq" replace />} />
           <Route path="/cart" element={<CartPage />} />
