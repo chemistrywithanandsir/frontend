@@ -305,11 +305,11 @@ export function PyqExamPage() {
   }, [user]);
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold text-amber-300 uppercase tracking-wide">
               <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1">
                 PYQ Practice
@@ -318,7 +318,7 @@ export function PyqExamPage() {
                 Real exam questions, organized by chapter
               </span>
             </p>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               Previous Year Questions
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
@@ -330,7 +330,7 @@ export function PyqExamPage() {
 
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Select your exam</h2>
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-4xl">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-w-4xl">
               {EXAMS.map((exam) => {
               const logo = getExamLogo(exam.id);
               return (
@@ -338,7 +338,7 @@ export function PyqExamPage() {
                   key={exam.id}
                   type="button"
                   onClick={() => navigate(`/dashboard/pyq/${exam.id}`)}
-                  className="relative min-w-[240px] rounded-[1.6rem] border border-slate-800/80 bg-slate-950/80 px-5 py-4 text-left transition-all hover:border-cyan-400/80 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(8,47,73,0.9)] overflow-hidden"
+                  className="relative min-w-0 rounded-[1.6rem] border border-slate-800/80 bg-slate-950/80 px-5 py-4 text-left transition-all hover:border-cyan-400/80 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(8,47,73,0.9)] overflow-hidden"
                 >
                   {/* subtle chemistry glow */}
                   <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
@@ -414,7 +414,7 @@ export function PyqExamPage() {
                   return (
                     <div
                       key={test.id}
-                      className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/50 px-5 py-4 hover:border-slate-700"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 px-4 sm:px-5 py-4 hover:border-slate-700"
                     >
                       <div>
                         <p className="font-medium text-slate-100">{test.examName}</p>
@@ -448,7 +448,7 @@ export function PyqExamPage() {
               onClick={() => navigate("/dashboard/pyq/personal-test")}
               className="group w-full max-w-4xl rounded-[1.6rem] border-2 border-dashed border-slate-600/80 bg-slate-900/40 px-6 py-5 text-left transition-all hover:border-cyan-400/60 hover:bg-slate-900/70 hover:shadow-[0_12px_35px_rgba(8,47,73,0.4)]"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 group-hover:bg-cyan-500/25 transition-colors">
                   <PlusCircle className="h-6 w-6" />
                 </div>
@@ -460,7 +460,7 @@ export function PyqExamPage() {
                     Build a custom test by selecting chapters, chemistry types, and number of questions from the PYQ bank.
                   </p>
                 </div>
-                <span className="text-slate-500 group-hover:text-cyan-400 transition-colors text-sm font-medium">
+                <span className="text-slate-500 group-hover:text-cyan-400 transition-colors text-sm font-medium sm:ml-auto">
                   Configure →
                 </span>
               </div>
@@ -524,7 +524,7 @@ export function PyqPersonalTestPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
+    <div className="relative min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
       {/* Soft background orbits */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-32 top-24 h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl" />
@@ -875,11 +875,11 @@ export function PyqPersonalTestChaptersPage() {
   if (!config) return null;
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center overflow-auto">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center overflow-auto">
         <div className="w-full max-w-5xl space-y-8">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <button
               type="button"
               onClick={() => navigate("/dashboard/pyq/personal-test")}
@@ -887,7 +887,7 @@ export function PyqPersonalTestChaptersPage() {
             >
               ← Back
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               Select chapters
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
@@ -1094,11 +1094,11 @@ export function PyqPersonalTestAttemptPage() {
   const maxMarks = questions.length * 4;
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-50">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header - blue bar style */}
-        <header className="shrink-0 bg-slate-800/90 border-b border-slate-700 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <header className="shrink-0 bg-slate-800/90 border-b border-slate-700 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => navigate("/dashboard/pyq")}
@@ -1124,9 +1124,9 @@ export function PyqPersonalTestAttemptPage() {
         </header>
 
         {/* Main content: left = question, right = status panel */}
-        <div className="flex-1 flex min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
           {/* Left: Question and options */}
-          <main className="flex-1 overflow-auto px-6 py-6">
+          <main className="flex-1 overflow-auto px-4 sm:px-6 py-5 sm:py-6">
             <div className="max-w-3xl">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs text-slate-400">
@@ -1206,7 +1206,7 @@ export function PyqPersonalTestAttemptPage() {
           </main>
 
           {/* Right: Question status panel */}
-          <aside className="w-72 shrink-0 border-l border-slate-700 bg-slate-900/50 overflow-auto">
+          <aside className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-700 bg-slate-900/50 overflow-auto">
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
                 <div className="flex items-center gap-1.5">
@@ -1272,8 +1272,8 @@ export function PyqPersonalTestAttemptPage() {
         </div>
 
         {/* Footer */}
-        <footer className="shrink-0 border-t border-slate-700 bg-slate-900/80 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <footer className="shrink-0 border-t border-slate-700 bg-slate-900/80 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={clearResponse}
@@ -1498,7 +1498,7 @@ export function PyqPersonalTestReviewPage() {
     return (
       <div className="min-h-screen flex flex-col bg-slate-950 text-slate-50">
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="shrink-0 border-b border-slate-700 bg-slate-800/90 px-6 py-3 flex items-center justify-between">
+          <header className="shrink-0 border-b border-slate-700 bg-slate-800/90 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-4">
               <button
                 type="button"
@@ -1535,7 +1535,7 @@ export function PyqPersonalTestReviewPage() {
             </div>
           </header>
 
-          <div className="flex-1 flex min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
             <main className="flex-1 overflow-auto px-6 py-6">
               <div className="max-w-3xl mx-auto">
                 {currentQ && (
@@ -1636,7 +1636,7 @@ export function PyqPersonalTestReviewPage() {
               </div>
             </main>
 
-            <aside className="w-64 shrink-0 border-l border-slate-700 bg-slate-900/50 overflow-auto p-4">
+            <aside className="w-full lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-700 bg-slate-900/50 overflow-auto p-4">
               <p className="text-xs font-semibold text-slate-300 mb-3">
                 Questions
               </p>
@@ -1664,7 +1664,7 @@ export function PyqPersonalTestReviewPage() {
             </aside>
           </div>
 
-          <footer className="shrink-0 border-t border-slate-700 bg-slate-900/80 px-6 py-4 flex items-center justify-between">
+          <footer className="shrink-0 border-t border-slate-700 bg-slate-900/80 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => setReviewIndex((i) => Math.max(0, i - 1))}
@@ -1694,12 +1694,12 @@ export function PyqPersonalTestReviewPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-6 py-8 overflow-auto">
+      <main className="flex-1 px-4 sm:px-6 py-8 overflow-auto">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Header */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-800/50 px-6 py-4 flex items-center justify-between">
+          <div className="rounded-2xl border border-slate-800 bg-slate-800/50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h1 className="text-xl font-bold text-white">{result.examName}</h1>
               <p className="text-sm text-slate-400 mt-0.5">{completedDate}</p>
@@ -1946,11 +1946,11 @@ export function PyqChemistryPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <button
               type="button"
               onClick={() => navigate("/dashboard/pyq")}
@@ -1958,7 +1958,7 @@ export function PyqChemistryPage() {
             >
               ← Back to exams
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               {exam.name} {isCbse ? "· Subjects" : "· Chemistry Type"}
             </h1>
             {!isCbse && (
@@ -2257,7 +2257,7 @@ export function PyqChapterPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
       <main className="flex-1 px-6 md:px-8 py-8 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
@@ -2353,11 +2353,11 @@ export function PyqChapterPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-4 text-[10px] md:text-[11px] text-slate-400">
+                    <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4 text-[10px] md:text-[11px] text-slate-400">
                       {chapter.yearBreakdown.map((stat) => (
                         <div
                           key={stat.year}
-                          className="flex flex-col items-end min-w-[80px]"
+                          className="flex flex-col items-start md:items-end min-w-[72px]"
                         >
                           <span className="uppercase tracking-wide text-slate-500">
                             {stat.year}
@@ -2542,7 +2542,7 @@ export function PyqQuestionPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
       <main className="flex-1 px-6 md:px-8 py-8 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-7">
@@ -2901,11 +2901,11 @@ function PyqQuestionAttemptPageInner() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex justify-center">
-      <main className="w-full max-w-5xl px-6 md:px-8 py-8 md:py-10 space-y-6">
+      <main className="w-full max-w-5xl px-4 sm:px-6 md:px-8 py-6 md:py-10 space-y-6">
           {/* hidden audio elements for feedback sounds */}
           <audio ref={correctAudioRef} src={CorrectSound} preload="auto" />
           <audio ref={wrongAudioRef} src={WrongSound} preload="auto" />
-          <header className="flex items-center justify-between gap-3">
+          <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <button
               type="button"
               onClick={() =>
@@ -3102,7 +3102,7 @@ function PyqQuestionAttemptPageInner() {
               )}
             </div>
 
-            <div className="mt-4 rounded-2xl bg-slate-900/80 border border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
+            <div className="mt-4 rounded-2xl bg-slate-900/80 border border-slate-800 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
               <button
                 type="button"
                 onClick={() => goToQuestionByIndex(currentQuestionIndex - 1)}

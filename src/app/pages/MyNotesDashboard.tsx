@@ -91,16 +91,16 @@ export function MyNotesExamPage() {
   const paymentMessage = (location.state as { message?: string } | null)?.message;
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
           {paymentSuccess && paymentMessage && (
             <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-emerald-200 text-sm">
               {paymentMessage}
             </div>
           )}
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold text-amber-300 uppercase tracking-wide">
               <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1">
                 My Notes
@@ -109,7 +109,7 @@ export function MyNotesExamPage() {
                 Your unlocked notes, all in one place
               </span>
             </p>
-            <h1 className="text-3xl md:text-4xl font-bold">My Notes</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">My Notes</h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
               Everything you&apos;ve purchased lives here. Pick an exam to see
               your bundles, filter by Organic, Inorganic or Physical if you like,
@@ -122,7 +122,7 @@ export function MyNotesExamPage() {
 
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Select your exam</h2>
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-4xl">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-w-4xl">
               {MOCK_EXAMS.map((exam) => {
                 const logo = getExamLogo(exam.id);
                 return (
@@ -132,7 +132,7 @@ export function MyNotesExamPage() {
                     onClick={() =>
                       navigate(`/dashboard/my-notes/${exam.id}`)
                     }
-                    className="relative min-w-[240px] rounded-[1.6rem] border border-slate-800/80 bg-slate-950/80 px-5 py-4 text-left transition-all hover:border-cyan-400/80 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(8,47,73,0.9)] overflow-hidden"
+                    className="relative min-w-0 rounded-[1.6rem] border border-slate-800/80 bg-slate-950/80 px-5 py-4 text-left transition-all hover:border-cyan-400/80 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(8,47,73,0.9)] overflow-hidden"
                   >
                     <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
                     <div className="flex items-center gap-3 mb-3">
@@ -217,11 +217,11 @@ export function MyNotesListPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-6">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800">
             <button
               type="button"
               onClick={() => navigate("/dashboard/my-notes")}
@@ -229,7 +229,7 @@ export function MyNotesListPage() {
             >
               ← Back to exams
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               {exam.name} Bundles
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
@@ -264,7 +264,7 @@ export function MyNotesListPage() {
                 You don&apos;t have any purchased bundles for this exam yet. Buy bundles from the Notes section.
               </p>
             ) : !bundlesLoading ? (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
                 {bundlesForExam.map((bundle) => (
                   <button
                     key={bundle.id}
@@ -272,9 +272,9 @@ export function MyNotesListPage() {
                     onClick={() =>
                       navigate(`/dashboard/my-notes/${exam.id}/bundle/${bundle.id}`)
                     }
-                    className="flex items-stretch gap-4 rounded-2xl border border-slate-800 bg-slate-950/90 px-4 py-4 text-left transition-all hover:border-cyan-400/70 hover:bg-slate-900/80 hover:shadow-[0_12px_30px_rgba(8,47,73,0.65)]"
+                    className="flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4 rounded-2xl border border-slate-800 bg-slate-950/90 px-4 py-4 text-left transition-all hover:border-cyan-400/70 hover:bg-slate-900/80 hover:shadow-[0_12px_30px_rgba(8,47,73,0.65)]"
                   >
-                    <div className="w-28 sm:w-36 flex-shrink-0 rounded-xl overflow-hidden bg-slate-800 border border-slate-700">
+                    <div className="w-full sm:w-28 md:w-36 h-36 sm:h-auto flex-shrink-0 rounded-xl overflow-hidden bg-slate-800 border border-slate-700">
                       {bundle.thumbnailUrl ? (
                         <img
                           src={bundle.thumbnailUrl}
@@ -395,7 +395,7 @@ export function MyNotesBundleNotesPage() {
   }
   if (bundlesLoading) {
     return (
-      <div className="min-h-screen flex bg-slate-950 text-slate-50">
+      <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
         <DashboardMiniSidebar />
         <main className="flex-1 flex items-center justify-center">
           <p className="text-slate-400 text-sm">Loading…</p>
@@ -422,11 +422,11 @@ export function MyNotesBundleNotesPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-6">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800">
             <button
               type="button"
               onClick={() => navigate(`/dashboard/my-notes/${exam.id}`)}
@@ -434,7 +434,7 @@ export function MyNotesBundleNotesPage() {
             >
               ← Back to bundles
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               {bundle.title}
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
@@ -460,7 +460,7 @@ export function MyNotesBundleNotesPage() {
                 <select
                   value={subjectFilter}
                   onChange={(e) => setSubjectFilter(e.target.value)}
-                  className="pl-10 pr-8 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-400/50 appearance-none cursor-pointer"
+                  className="w-full sm:w-auto pl-10 pr-8 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-400/50 appearance-none cursor-pointer"
                 >
                   <option value="all">All Categories</option>
                   <option value="Chemistry">Chemistry</option>
@@ -475,7 +475,7 @@ export function MyNotesBundleNotesPage() {
                       e.target.value as Chapter["chemistryType"] | "all"
                     )
                   }
-                  className="pl-10 pr-8 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-400/50 appearance-none cursor-pointer"
+                  className="w-full sm:w-auto pl-10 pr-8 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-400/50 appearance-none cursor-pointer"
                 >
                   <option value="all">All Categories</option>
                   <option value="Organic">Organic Chemistry</option>
@@ -503,7 +503,7 @@ export function MyNotesBundleNotesPage() {
                       { state: { note } }
                     )
                   }
-                  className="w-full flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-950/95 px-4 py-3 text-left transition-all hover:border-cyan-400/50 hover:bg-slate-900/80"
+                  className="w-full flex items-start sm:items-center gap-3 sm:gap-4 rounded-2xl border border-slate-800 bg-slate-950/95 px-4 py-3 text-left transition-all hover:border-cyan-400/50 hover:bg-slate-900/80"
                 >
                   {getChemistryIcon(note.chemistryType)}
                   <div className="flex-1 min-w-0">

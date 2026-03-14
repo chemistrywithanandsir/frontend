@@ -53,10 +53,10 @@ export function NotesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 md:py-12 space-y-6 sm:space-y-8">
       {/* Step header */}
       <header className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight leading-tight">
           Notes library
         </h1>
         <p className="text-sm md:text-[15px] text-slate-400">
@@ -83,7 +83,7 @@ export function NotesPage() {
       {/* Step 1: exams */}
       <section className="space-y-3">
         <h2 className="text-lg md:text-xl font-semibold">Select exam</h2>
-        <div className="flex flex-wrap justify-start gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {MOCK_EXAMS.map((exam) => {
             const isActive = selectedExamId === exam.id;
             return (
@@ -94,7 +94,7 @@ export function NotesPage() {
                   setSelectedExamId(exam.id);
                   setSelectedChemistryType(null);
                 }}
-                className={`min-w-[180px] rounded-2xl border px-4 py-3 text-left text-sm transition-all ${
+                className={`min-w-0 w-full rounded-2xl border px-4 py-3 text-left text-sm transition-all ${
                   isActive
                     ? "border-cyan-400/70 bg-slate-900 shadow-[0_14px_35px_rgba(8,47,73,0.8)]"
                     : "border-slate-800 bg-slate-900/80 hover:border-cyan-400/50 hover:-translate-y-0.5"
@@ -115,7 +115,7 @@ export function NotesPage() {
         <h2 className="text-lg md:text-xl font-semibold">
           Choose chemistry type
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {(["Organic", "Inorganic", "Physical"] as Chapter["chemistryType"][]).map(
             (chem) => {
               const count = chemistryStats[chem] ?? 0;
@@ -161,17 +161,17 @@ export function NotesPage() {
             No bundles yet for this combination in the mock data.
           </p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {filteredBundles.map((bundle) => (
               <button
                 key={bundle.id}
                 type="button"
                 onClick={() => handleBundleClick(bundle.id)}
-                className="w-full group rounded-2xl border border-slate-800 bg-slate-950/95 px-4 py-4 text-left flex items-stretch gap-4 hover:border-cyan-400/70 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(8,47,73,0.9)] transition-all"
+                className="w-full group rounded-2xl border border-slate-800 bg-slate-950/95 px-3 sm:px-4 py-3 sm:py-4 text-left flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4 hover:border-cyan-400/70 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(8,47,73,0.9)] transition-all"
               >
                 {/* Thumbnail on the left, if provided */}
                 {bundle.thumbnailUrl && (
-                  <div className="relative w-32 sm:w-40 flex-shrink-0">
+                  <div className="relative w-full sm:w-32 md:w-40 h-36 sm:h-auto flex-shrink-0">
                     <img
                       src={bundle.thumbnailUrl}
                       alt={bundle.title}
@@ -183,7 +183,7 @@ export function NotesPage() {
                 {/* Middle content */}
                 <div className="flex-1 flex flex-col justify-between gap-2">
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/90 border border-slate-700 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-slate-100">
                         {bundle.examCode}
                       </span>
@@ -211,7 +211,7 @@ export function NotesPage() {
                 </div>
 
                 {/* Right side: price and small CTA */}
-                <div className="flex flex-col items-end justify-between text-right ml-2">
+                <div className="flex flex-row sm:flex-col items-end sm:items-end justify-between sm:justify-between text-right sm:ml-2 gap-3 sm:gap-0">
                   <div>
                     {bundle.originalPriceInRupees &&
                       bundle.originalPriceInRupees > bundle.priceInRupees && (
@@ -229,7 +229,7 @@ export function NotesPage() {
                         </p>
                       )}
                   </div>
-                  <span className="mt-2 inline-flex items-center rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold px-3 py-1">
+                  <span className="mt-0 sm:mt-2 inline-flex items-center rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold px-3 py-1">
                     Buy bundle
                   </span>
                 </div>

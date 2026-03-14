@@ -155,9 +155,9 @@ function DashboardHome({
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10">
+    <div className="max-w-6xl mx-auto space-y-8 md:space-y-10">
       {/* Welcome header */}
-      <header className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 px-6 py-6 md:px-8 md:py-7 shadow-[0_24px_60px_rgba(15,23,42,0.95)]">
+      <header className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-7 shadow-[0_24px_60px_rgba(15,23,42,0.95)]">
         <div className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-cyan-500/20 blur-3xl" />
         <div className="pointer-events-none absolute -left-12 bottom-0 h-32 w-32 rounded-full bg-fuchsia-500/15 blur-3xl" />
 
@@ -167,7 +167,7 @@ function DashboardHome({
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Chemistry by Anand · Dashboard
             </p>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-tight">
               Welcome back<span className="ml-2">👋</span>
             </h1>
             <p className="text-slate-300 text-sm md:text-base">
@@ -215,13 +215,13 @@ function DashboardHome({
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap justify-center md:justify-start gap-6 pb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pb-2">
           {MOCK_EXAMS.map((exam) => {
             const logoSrc = getExamLogoPath(exam.id);
             return (
               <div
                 key={exam.id}
-                className="min-w-[230px] rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-cyan-400/70 hover:-translate-y-1 transition-all shadow-lg/40"
+                className="min-w-0 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-cyan-400/70 hover:-translate-y-1 transition-all shadow-lg/40"
               >
                 <div className="h-full w-full rounded-3xl bg-gradient-to-br from-[#14f1ff] via-[#2b84ff] to-[#7c3aed] px-0.5 py-0.5">
                   <div className="h-full w-full rounded-[1.4rem] bg-slate-950 px-6 py-6 flex flex-col items-center justify-between gap-4">
@@ -287,13 +287,13 @@ function DashboardHome({
           };
 
           return (
-            <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/70 via-slate-950/60 to-slate-950/80 px-5 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+            <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/70 via-slate-950/60 to-slate-950/80 px-4 sm:px-5 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
               <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-cyan-500/10 blur-3xl" />
               <div className="pointer-events-none absolute -left-12 -bottom-16 h-44 w-44 rounded-full bg-fuchsia-500/10 blur-3xl" />
 
               <div className="relative">
                 <div className="rounded-3xl border border-slate-800 bg-slate-950/40 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between gap-3">
+                  <div className="px-4 py-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-200 truncate">
                         My tasks
@@ -413,8 +413,8 @@ function DashboardHome({
 
       {/* Latest Notes */}
       <section>
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800 px-6 py-5 space-y-4 shadow-[0_18px_45px_rgba(15,23,42,0.85)]">
-          <div className="flex items-center justify-between">
+          <div className="rounded-3xl bg-slate-900/80 border border-slate-800 px-4 sm:px-6 py-5 space-y-4 shadow-[0_18px_45px_rgba(15,23,42,0.85)]">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl md:text-2xl font-semibold">Latest Notes</h2>
             <Link
               to="/dashboard/notes"
@@ -432,7 +432,7 @@ function DashboardHome({
           {!latestLoading && !latestError && latestBundles.length > 0 && (
             <>
               {/* One row of 5 bundles on large screens */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
                 {latestBundles.slice(0, 5).map((bundle) => {
                   const chapterCount = bundle.chapters?.length ?? 0;
                   return (
@@ -543,7 +543,7 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
       : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 md:space-y-6">
       {/* Top heading bar */}
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -562,7 +562,7 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="grid gap-5 md:gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         {/* Left: components summary + bundle contents list */}
         <section>
           {/* Organic / Inorganic / Physical cards (hide for CBSE bundles) */}
@@ -624,13 +624,13 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
                     setCurrentPage(1);
                     setIsViewerOpen(true);
                   }}
-                  className={`w-full flex items-center gap-5 rounded-3xl border px-4 py-3.5 text-left transition-all ${
+                  className={`w-full flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 rounded-3xl border px-3 sm:px-4 py-3.5 text-left transition-all ${
                     isActive
                       ? "border-cyan-400/80 bg-slate-900"
                       : "border-slate-800 bg-slate-950/80 hover:border-slate-700"
                   }`}
                 >
-                  <div className="h-20 w-36 rounded-2xl bg-slate-900 overflow-hidden flex-shrink-0">
+                  <div className="h-40 sm:h-20 w-full sm:w-36 rounded-2xl bg-slate-900 overflow-hidden flex-shrink-0">
                     {chapterThumb ? (
                       <img
                         src={chapterThumb}
@@ -653,7 +653,7 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
                         : "PDF notes"}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-1 w-full sm:w-auto">
                     <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-900 border border-slate-700 text-slate-200">
                       {chapter.chemistryType}
                     </span>
@@ -826,10 +826,10 @@ function ProfileSection({
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 flex flex-col items-center">
       {/* User details card - enhanced */}
-      <div className="w-full relative overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 px-8 py-7 shadow-[0_24px_60px_rgba(15,23,42,0.6)]">
+      <div className="w-full relative overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 px-4 sm:px-6 md:px-8 py-6 sm:py-7 shadow-[0_24px_60px_rgba(15,23,42,0.6)]">
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-500/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-12 bottom-0 h-32 w-32 rounded-full bg-fuchsia-500/10 blur-3xl" />
-        <div className="relative flex items-center gap-6">
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
           <div className="relative shrink-0">
             <div className="h-20 w-20 rounded-2xl overflow-hidden ring-2 ring-cyan-400/30 ring-offset-2 ring-offset-slate-900 shadow-lg">
               {avatarUrl ? (
@@ -905,7 +905,7 @@ function ProfileSection({
       </div>
 
       {/* Weekly activity - one line */}
-      <section className="w-full rounded-2xl border border-slate-700/80 bg-gradient-to-b from-slate-900/60 to-slate-950/80 px-6 py-5 shadow-lg">
+      <section className="w-full rounded-2xl border border-slate-700/80 bg-gradient-to-b from-slate-900/60 to-slate-950/80 px-4 sm:px-6 py-5 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-slate-200">
             My Weekly Activity
@@ -915,7 +915,7 @@ function ProfileSection({
           </span>
         </div>
         <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[100px] rounded-xl border border-slate-700/60 bg-slate-950/90 px-4 py-4 hover:border-cyan-400/20 transition-colors">
+          <div className="flex-1 min-w-[140px] rounded-xl border border-slate-700/60 bg-slate-950/90 px-4 py-4 hover:border-cyan-400/20 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-cyan-400 text-lg" aria-hidden>?</span>
               <p className="text-[11px] text-slate-400 uppercase tracking-wide">Questions solved</p>
@@ -924,7 +924,7 @@ function ProfileSection({
               {thisWeek?.questions ?? 0}
             </p>
           </div>
-          <div className="flex-1 min-w-[100px] rounded-xl border border-slate-700/60 bg-slate-950/90 px-4 py-4 hover:border-emerald-400/20 transition-colors">
+          <div className="flex-1 min-w-[140px] rounded-xl border border-slate-700/60 bg-slate-950/90 px-4 py-4 hover:border-emerald-400/20 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-emerald-400 text-lg" aria-hidden>✓</span>
               <p className="text-[11px] text-slate-400 uppercase tracking-wide">Correct questions</p>
@@ -933,7 +933,7 @@ function ProfileSection({
               {thisWeek?.correct ?? 0}
             </p>
           </div>
-          <div className="flex-1 min-w-[100px] rounded-xl border border-slate-700/60 bg-slate-950/90 px-4 py-4 hover:border-amber-400/20 transition-colors">
+          <div className="flex-1 min-w-[140px] rounded-xl border border-slate-700/60 bg-slate-950/90 px-4 py-4 hover:border-amber-400/20 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-amber-400 text-lg" aria-hidden>◎</span>
               <p className="text-[11px] text-slate-400 uppercase tracking-wide">Accuracy</p>
@@ -1041,9 +1041,9 @@ export function UserDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-8">
+      <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 flex-col items-center py-8 shrink-0">
         {/* Logo */}
         <Link to="/dashboard" className="mb-8 block">
           <img
@@ -1099,8 +1099,60 @@ export function UserDashboardPage() {
         </nav>
       </aside>
 
+      {/* Mobile top nav */}
+      <div className="md:hidden sticky top-0 z-40 border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/dashboard" className="block">
+            <img
+              src={Logo}
+              alt="Chemistry by Anand"
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
+          <Link
+            to="/dashboard/profile"
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200"
+          >
+            Profile
+          </Link>
+        </div>
+        <nav className="mt-3 -mx-1 overflow-x-auto">
+          <div className="flex gap-2 px-1 pb-1 min-w-max">
+            <Link
+              to="/dashboard"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                !isProfileRoute && !isBundleDetailRoute
+                  ? "bg-slate-800 text-cyan-300"
+                  : "text-slate-200 border border-slate-700"
+              }`}
+            >
+              Home
+            </Link>
+            <Link to="/dashboard/pyq" className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 border border-slate-700">
+              PYQs
+            </Link>
+            <Link to="/dashboard/notes" className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 border border-slate-700">
+              Notes
+            </Link>
+            <Link to="/dashboard/my-notes" className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 border border-slate-700">
+              My notes
+            </Link>
+            <Link
+              to="/dashboard/profile"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                isProfileRoute
+                  ? "bg-slate-800 text-cyan-300"
+                  : "text-slate-200 border border-slate-700"
+              }`}
+            >
+              Profile
+            </Link>
+          </div>
+        </nav>
+      </div>
+
       {/* Main content */}
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-8">
         {isBundleDetailRoute ? (
           bundleForDetail ? (
             <div className="space-y-4">

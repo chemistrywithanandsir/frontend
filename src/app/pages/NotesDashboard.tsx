@@ -79,10 +79,10 @@ function BundleCardWithBuy({
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={(e) => e.key === "Enter" && handleCardClick()}
-      className="w-full group rounded-2xl border border-slate-800 bg-slate-950/95 px-4 py-4 text-left flex items-stretch gap-4 hover:border-cyan-400/70 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(8,47,73,0.9)] transition-all cursor-pointer"
+      className="w-full group rounded-2xl border border-slate-800 bg-slate-950/95 px-3 sm:px-4 py-3 sm:py-4 text-left flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4 hover:border-cyan-400/70 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(8,47,73,0.9)] transition-all cursor-pointer"
     >
       {bundle.thumbnailUrl && (
-        <div className="relative w-32 sm:w-40 flex-shrink-0">
+        <div className="relative w-full sm:w-32 md:w-40 h-36 sm:h-auto flex-shrink-0">
           <img
             src={bundle.thumbnailUrl}
             alt={bundle.title}
@@ -93,7 +93,7 @@ function BundleCardWithBuy({
 
       <div className="flex-1 flex flex-col justify-between gap-2 min-w-0">
         <div>
-          <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/90 border border-slate-700 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-slate-100">
               {bundle.displayExamLabel || bundle.examCode}
             </span>
@@ -121,7 +121,7 @@ function BundleCardWithBuy({
         </p>
       </div>
 
-      <div className="flex flex-col items-end justify-between text-right ml-2 shrink-0">
+      <div className="flex flex-row sm:flex-col items-end justify-between text-right sm:ml-2 shrink-0 gap-3 sm:gap-0">
         {isPurchased ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
             Purchased
@@ -149,7 +149,7 @@ function BundleCardWithBuy({
               type="button"
               onClick={handleBuy}
               disabled={loading}
-              className="mt-2 inline-flex items-center rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold px-3 py-1.5 hover:from-cyan-300 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="mt-0 sm:mt-2 inline-flex items-center rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold px-3 py-1.5 hover:from-cyan-300 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? "Opening…" : "Buy bundle"}
             </button>
@@ -165,11 +165,11 @@ export function NotesExamPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold text-amber-300 uppercase tracking-wide">
               <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1">
                 Notes Library
@@ -178,7 +178,7 @@ export function NotesExamPage() {
                 Curated PDF notes, organized by exam and chemistry branch
               </span>
             </p>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               Notes Library
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
@@ -191,7 +191,7 @@ export function NotesExamPage() {
 
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Select your exam</h2>
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-4xl">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-w-4xl">
               {MOCK_EXAMS.map((exam) => {
                 const logo = getExamLogo(exam.id);
                 return (
@@ -199,7 +199,7 @@ export function NotesExamPage() {
                     key={exam.id}
                     type="button"
                     onClick={() => navigate(`/dashboard/notes/${exam.id}`)}
-                    className="relative min-w-[240px] rounded-[1.6rem] border border-slate-800/80 bg-slate-950/80 px-5 py-4 text-left transition-all hover:border-cyan-400/80 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(8,47,73,0.9)] overflow-hidden"
+                    className="relative min-w-0 rounded-[1.6rem] border border-slate-800/80 bg-slate-950/80 px-5 py-4 text-left transition-all hover:border-cyan-400/80 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(8,47,73,0.9)] overflow-hidden"
                   >
                     <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
                     <div className="pointer-events-none absolute -left-12 bottom-0 h-28 w-28 rounded-full bg-fuchsia-500/10 blur-2xl" />
@@ -345,11 +345,11 @@ export function NotesChemistryPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <button
               type="button"
               onClick={() => navigate("/dashboard/notes")}
@@ -357,7 +357,7 @@ export function NotesChemistryPage() {
             >
               ← Back to exams
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               {exam.name} · Notes Library
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">
@@ -453,11 +453,11 @@ export function NotesBundlesPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-50">
       <DashboardMiniSidebar />
-      <main className="flex-1 px-8 py-10 flex justify-center">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 md:py-10 flex justify-center">
         <div className="w-full max-w-5xl space-y-8">
-          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-6 py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          <header className="space-y-3 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 px-4 sm:px-6 py-5 sm:py-6 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
             <button
               type="button"
               onClick={() => navigate(`/dashboard/notes/${exam.id}`)}
@@ -465,7 +465,7 @@ export function NotesBundlesPage() {
             >
               ← Back to chemistry type
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
               {exam.name} · {chemistryType} Notes
             </h1>
             <p className="text-slate-300 text-sm md:text-base max-w-2xl">

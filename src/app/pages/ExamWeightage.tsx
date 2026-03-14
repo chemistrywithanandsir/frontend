@@ -248,12 +248,12 @@ export function ExamWeightagePage() {
           transition={{ duration: 0.5 }}
           className="mb-10"
         >
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-50 mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-50 mb-2 leading-tight">
             <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
               {examName} Chemistry
             </span>
           </h1>
-          <p className="text-slate-400">
+          <p className="text-sm sm:text-base text-slate-400">
             Previous year chapterwise weightage
           </p>
         </motion.div>
@@ -262,13 +262,13 @@ export function ExamWeightagePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 md:p-8 shadow-xl mb-8"
+          className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-6 md:p-8 shadow-xl mb-8"
         >
           {normalizedId === "jee-main" ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-100">
+                  <h2 className="text-base sm:text-lg font-semibold text-slate-100">
                     Chapterwise questions for selected shift
                   </h2>
                   <p className="text-sm text-slate-400">
@@ -276,8 +276,8 @@ export function ExamWeightagePage() {
                   </p>
                 </div>
                 {shiftEntriesAll.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-slate-400">Shift:</label>
+                  <div className="flex w-full sm:w-auto items-center gap-2">
+                    <label className="text-sm text-slate-400 shrink-0">Shift:</label>
                     <select
                       value={selectedShiftId}
                       onChange={(e) => {
@@ -288,7 +288,7 @@ export function ExamWeightagePage() {
                           setYear(found.year);
                         }
                       }}
-                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 max-w-xs"
+                      className="w-full sm:w-auto bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 max-w-full sm:max-w-xs"
                     >
                       {shiftEntriesAll.map((entry) => (
                         <option key={entry.id} value={entry.id}>
@@ -310,46 +310,67 @@ export function ExamWeightagePage() {
                   No chapter data for {selectedYear}.
                 </p>
               ) : (
-                <div
-                  className="w-full"
-                  style={{
-                    // Extra-tall chart so every chapter label and bar has generous space
-                    height: Math.max(640, chartData.length * 52),
-                  }}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 30, right: 40, left: 40, bottom: 100 }}
-                      layout="vertical"
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis
-                        type="number"
-                        stroke="#94a3b8"
-                        tick={{ fill: "#94a3b8", fontSize: 12 }}
-                        domain={[0, "auto"]}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="chapter"
-                        stroke="#94a3b8"
-                        tick={{ fill: "#e2e8f0", fontSize: 13 }}
-                        width={340}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        content={<CustomTooltip />}
-                        cursor={{ fill: "rgba(34, 211, 238, 0.1)" }}
-                      />
-                      <Bar dataKey="questions" radius={[0, 4, 4, 0]} maxBarSize={28}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <>
+                  <div className="md:hidden space-y-2">
+                    {chartData
+                      .slice()
+                      .sort((a, b) => b.questions - a.questions)
+                      .map((entry) => (
+                        <div
+                          key={entry.fullLabel}
+                          className="flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2"
+                        >
+                          <p className="text-sm text-slate-200 leading-snug break-words">
+                            {entry.fullLabel}
+                          </p>
+                          <span className="shrink-0 rounded-md bg-cyan-500/20 text-cyan-300 text-xs font-semibold px-2 py-1">
+                            {entry.questions}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div
+                    className="hidden md:block w-full"
+                    style={{
+                      // Extra-tall chart so every chapter label and bar has generous space
+                      height: Math.max(640, chartData.length * 52),
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        margin={{ top: 30, right: 40, left: 40, bottom: 100 }}
+                        layout="vertical"
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis
+                          type="number"
+                          stroke="#94a3b8"
+                          tick={{ fill: "#94a3b8", fontSize: 12 }}
+                          domain={[0, "auto"]}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="chapter"
+                          stroke="#94a3b8"
+                          tick={{ fill: "#e2e8f0", fontSize: 13 }}
+                          width={340}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          content={<CustomTooltip />}
+                          cursor={{ fill: "rgba(34, 211, 238, 0.1)" }}
+                        />
+                        <Bar dataKey="questions" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
               )}
             </>
           ) : (
@@ -361,7 +382,7 @@ export function ExamWeightagePage() {
                       key={y}
                       type="button"
                       onClick={() => setYear(y)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-all ${
                         selectedYear === y
                           ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
                           : "text-slate-400 hover:text-slate-200 border border-slate-700"
@@ -381,45 +402,66 @@ export function ExamWeightagePage() {
                   No chapter data for {selectedYear}.
                 </p>
               ) : (
-                <div
-                  className="w-full"
-                  style={{
-                    height: Math.max(640, chartData.length * 52),
-                  }}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 30, right: 40, left: 40, bottom: 100 }}
-                      layout="vertical"
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis
-                        type="number"
-                        stroke="#94a3b8"
-                        tick={{ fill: "#94a3b8", fontSize: 12 }}
-                        domain={[0, "auto"]}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="chapter"
-                        stroke="#94a3b8"
-                        tick={{ fill: "#e2e8f0", fontSize: 13 }}
-                        width={320}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        content={<CustomTooltip />}
-                        cursor={{ fill: "rgba(34, 211, 238, 0.1)" }}
-                      />
-                      <Bar dataKey="questions" radius={[0, 4, 4, 0]} maxBarSize={28}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <>
+                  <div className="md:hidden space-y-2">
+                    {chartData
+                      .slice()
+                      .sort((a, b) => b.questions - a.questions)
+                      .map((entry) => (
+                        <div
+                          key={entry.fullLabel}
+                          className="flex items-start justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2"
+                        >
+                          <p className="text-sm text-slate-200 leading-snug break-words">
+                            {entry.fullLabel}
+                          </p>
+                          <span className="shrink-0 rounded-md bg-cyan-500/20 text-cyan-300 text-xs font-semibold px-2 py-1">
+                            {entry.questions}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div
+                    className="hidden md:block w-full"
+                    style={{
+                      height: Math.max(640, chartData.length * 52),
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        margin={{ top: 30, right: 40, left: 40, bottom: 100 }}
+                        layout="vertical"
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis
+                          type="number"
+                          stroke="#94a3b8"
+                          tick={{ fill: "#94a3b8", fontSize: 12 }}
+                          domain={[0, "auto"]}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="chapter"
+                          stroke="#94a3b8"
+                          tick={{ fill: "#e2e8f0", fontSize: 13 }}
+                          width={320}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          content={<CustomTooltip />}
+                          cursor={{ fill: "rgba(34, 211, 238, 0.1)" }}
+                        />
+                        <Bar dataKey="questions" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
               )}
             </>
           )}
