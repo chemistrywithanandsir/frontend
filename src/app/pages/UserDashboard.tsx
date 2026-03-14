@@ -28,6 +28,8 @@ import {
 } from "../api/analyticsApi";
 import { useRazorpayPayment } from "../hooks/useRazorpayPayment";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
 const MOCK_PURCHASED_BUNDLES: NoteBundle[] = MOCK_LATEST_BUNDLES;
 
 function getExamLogoPath(examId: string) {
@@ -127,7 +129,7 @@ function DashboardHome({
       setLatestLoading(true);
       setLatestError(null);
       try {
-        const res = await fetch("http://localhost:8000/notes/bundles");
+        const res = await fetch(`${API_BASE}/notes/bundles`);
         const json = await res.json();
         const apiBundles = Array.isArray(json.bundles) ? json.bundles : [];
         const mapped: NoteBundle[] = apiBundles.map((b: any) => ({
@@ -535,7 +537,7 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
 
   const previewUrl =
     selectedChapter?.pdfUrl
-      ? `http://localhost:8000/notes/preview?pdf_url=${encodeURIComponent(
+      ? `${API_BASE}/notes/preview?pdf_url=${encodeURIComponent(
           selectedChapter.pdfUrl,
         )}&max_pages=5`
       : null;
@@ -973,9 +975,9 @@ export function UserDashboardPage() {
 
     const loadBundle = async () => {
       try {
-        const res = await fetch(
-          `http://localhost:8000/notes/bundles/${encodeURIComponent(bundleId)}`
-        );
+      const res = await fetch(
+        `${API_BASE}/notes/bundles/${encodeURIComponent(bundleId)}`
+      );
         if (!res.ok) {
           return;
         }

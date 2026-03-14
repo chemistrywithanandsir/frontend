@@ -14,6 +14,8 @@ import CbseLogo from "../../assests/CBSE.svg";
 import { useRazorpayPayment } from "../hooks/useRazorpayPayment";
 import { useMyBundles } from "../hooks/useMyBundles";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
 function getExamLogo(examId: string) {
   switch (examId) {
     case "neet":
@@ -280,7 +282,7 @@ export function NotesChemistryPage() {
       try {
         // Ask backend directly for bundles of this exam (jee-main / neet / cbse, etc.)
         const res = await fetch(
-          `http://localhost:8000/notes/bundles?exam_code=${encodeURIComponent(
+          `${API_BASE}/notes/bundles?exam_code=${encodeURIComponent(
             exam.id
           )}`
         );

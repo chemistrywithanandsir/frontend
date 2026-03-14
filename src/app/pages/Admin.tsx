@@ -26,6 +26,8 @@ import {
   fetchExamWeightagePublic,
 } from "../utils/apiWeightage";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
 type AdminStatus =
   | "checking_auth"
   | "redirecting_to_google"
@@ -192,7 +194,7 @@ export function AdminAnandPage() {
       form.append("file", file);
 
       const res = await fetch(
-        "http://localhost:8000/admin/pyq/questions/images/upload",
+        `${API_BASE}/admin/pyq/questions/images/upload`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -284,7 +286,7 @@ export function AdminAnandPage() {
       setPyqQuestionsLoading(true);
       let url = "";
       if (pyqBrowseAll) {
-        url = "http://localhost:8000/admin/pyq/questions/all";
+        url = `${API_BASE}/admin/pyq/questions/all`;
       } else {
         const params = new URLSearchParams();
         params.set("exam_type", selectedExamLabel);
@@ -292,7 +294,7 @@ export function AdminAnandPage() {
         if (selectedYearVal) {
           params.set("year", selectedYearVal);
         }
-        url = `http://localhost:8000/admin/pyq/questions/list?${params.toString()}`;
+        url = `${API_BASE}/admin/pyq/questions/list?${params.toString()}`;
       }
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -538,8 +540,8 @@ export function AdminAnandPage() {
 
         const qs = params.toString();
         const url = qs
-          ? `http://localhost:8000/admin/notes/list?${qs}`
-          : "http://localhost:8000/admin/notes/list";
+          ? `${API_BASE}/admin/notes/list?${qs}`
+          : `${API_BASE}/admin/notes/list`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
@@ -587,7 +589,7 @@ export function AdminAnandPage() {
           setNotesBundlesLoading(false);
           return;
         }
-        const res = await fetch("http://localhost:8000/admin/notes/bundles/list", {
+      const res = await fetch(`${API_BASE}/admin/notes/bundles/list`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -647,7 +649,7 @@ export function AdminAnandPage() {
           return;
         }
 
-        const res = await fetch("http://localhost:8000/admin/anand", {
+        const res = await fetch(`${API_BASE}/admin/anand`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1697,7 +1699,7 @@ export function AdminAnandPage() {
                                     return;
                                   }
                                   const res = await fetch(
-                                    "http://localhost:8000/admin/pyq/questions/delete",
+                                    `${API_BASE}/admin/pyq/questions/delete`,
                                     {
                                       method: "POST",
                                       headers: {
@@ -2144,7 +2146,7 @@ export function AdminAnandPage() {
                         }
 
                         const res = await fetch(
-                          "http://localhost:8000/admin/pyq/questions/update",
+                          `${API_BASE}/admin/pyq/questions/update`,
                           {
                             method: "POST",
                             headers: {
@@ -2413,7 +2415,7 @@ export function AdminAnandPage() {
                     formData.append("chapter_name", chapterNameToSend);
                     const maxQ = parseInt(pyqMaxQuestions, 10);
                     if (maxQ > 0) formData.append("max_questions", String(maxQ));
-                    const res = await fetch("http://localhost:8000/admin/pyq/upload", {
+                    const res = await fetch(`${API_BASE}/admin/pyq/upload`, {
                       method: "POST",
                       headers: { Authorization: `Bearer ${token}` },
                       body: formData,
@@ -2725,7 +2727,7 @@ export function AdminAnandPage() {
                       if (o4) formData.append("option4_image", o4);
                     }
 
-                    const res = await fetch("http://localhost:8000/admin/pyq/manual", {
+                    const res = await fetch(`${API_BASE}/admin/pyq/manual`, {
                       method: "POST",
                       headers: { Authorization: `Bearer ${token}` },
                       body: formData,
@@ -3016,7 +3018,7 @@ export function AdminAnandPage() {
                 );
                 formData.append("title", notesTitle.trim());
 
-                const res = await fetch("http://localhost:8000/admin/notes/upload", {
+                const res = await fetch(`${API_BASE}/admin/notes/upload`, {
                   method: "POST",
                   headers: { Authorization: `Bearer ${token}` },
                   body: formData,
@@ -3336,7 +3338,7 @@ export function AdminAnandPage() {
                                     return;
                                   }
                                   const res = await fetch(
-                                    "http://localhost:8000/admin/pyq/questions/delete",
+                                    `${API_BASE}/admin/pyq/questions/delete`,
                                     {
                                       method: "POST",
                                       headers: {
@@ -3600,7 +3602,7 @@ export function AdminAnandPage() {
                           }
 
                           const res = await fetch(
-                            "http://localhost:8000/admin/pyq/questions/update",
+                            `${API_BASE}/admin/pyq/questions/update`,
                             {
                               method: "POST",
                               headers: {
@@ -3947,7 +3949,7 @@ export function AdminAnandPage() {
                     formData.append("thumbnail", thumb);
                   }
 
-                  const res = await fetch("http://localhost:8000/admin/notes/bundles/create", {
+                  const res = await fetch(`${API_BASE}/admin/notes/bundles/create`, {
                     method: "POST",
                     headers: {
                       Authorization: `Bearer ${token}`,
@@ -4072,7 +4074,7 @@ export function AdminAnandPage() {
                               return;
                             }
                             const res = await fetch(
-                              `http://localhost:8000/admin/notes/bundles/notes?bundle_id=${encodeURIComponent(
+                              `${API_BASE}/admin/notes/bundles/notes?bundle_id=${encodeURIComponent(
                                 b.id
                               )}`,
                               {
@@ -4127,7 +4129,7 @@ export function AdminAnandPage() {
                               return;
                             }
                             const res = await fetch(
-                              "http://localhost:8000/admin/notes/bundles/delete",
+                              `${API_BASE}/admin/notes/bundles/delete`,
                               {
                                 method: "POST",
                                 headers: {
@@ -4426,7 +4428,7 @@ export function AdminAnandPage() {
                             : null,
                       };
                       const res = await fetch(
-                        "http://localhost:8000/admin/notes/bundles/update",
+                        `${API_BASE}/admin/notes/bundles/update`,
                         {
                           method: "POST",
                           headers: {
@@ -4453,7 +4455,7 @@ export function AdminAnandPage() {
                       // Also persist updated note membership
                       try {
                         const resNotes = await fetch(
-                          "http://localhost:8000/admin/notes/bundles/notes/update",
+                          `${API_BASE}/admin/notes/bundles/notes/update`,
                           {
                             method: "POST",
                             headers: {

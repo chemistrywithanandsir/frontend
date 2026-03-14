@@ -10,6 +10,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getAvatarUrl, getDisplayNameFallback } from "../context/ProfileContext";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
 type ChatMsg = {
   id: string;
   role: "user" | "assistant";
@@ -93,7 +95,7 @@ export function GeminiChatWidget() {
       fd.append("history", JSON.stringify(history));
       if (imageFile) fd.append("image", imageFile);
 
-      const res = await fetch("http://localhost:8000/chat/cloudflare", {
+      const res = await fetch(`${API_BASE}/chat/cloudflare`, {
         method: "POST",
         body: fd,
       });
@@ -273,7 +275,7 @@ export function GeminiChatWidget() {
                       try {
                         setSending(true);
                         const res = await fetch(
-                          "http://localhost:8000/chat/cloudflare/agree",
+                          `${API_BASE}/chat/cloudflare/agree`,
                           { method: "POST" }
                         );
                         const json = await res.json();
