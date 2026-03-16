@@ -440,11 +440,11 @@ function DashboardHome({
                       <div className="h-1 w-full bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 group-hover:from-cyan-500/40 group-hover:via-slate-600 group-hover:to-cyan-500/40 transition-colors duration-200" />
 
                       {bundle.thumbnailUrl && (
-                        <div className="w-full h-24 lg:h-28 bg-slate-900 overflow-hidden border-b border-slate-800">
+                        <div className="w-full aspect-video bg-slate-900 overflow-hidden border-b border-slate-800">
                           <img
                             src={bundle.thumbnailUrl}
                             alt={bundle.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         </div>
                       )}
@@ -624,12 +624,12 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
                       : "border-slate-800 bg-slate-950/80 hover:border-slate-700"
                   }`}
                 >
-                  <div className="h-40 sm:h-20 w-full sm:w-36 rounded-2xl bg-slate-900 overflow-hidden flex-shrink-0">
+                  <div className="w-full sm:w-36 aspect-video rounded-2xl bg-slate-900 overflow-hidden flex-shrink-0">
                     {chapterThumb ? (
                       <img
                         src={chapterThumb}
                         alt={chapter.title}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-[11px] text-slate-400">
@@ -664,11 +664,11 @@ function BundleDetailSection({ bundle }: { bundle: NoteBundle }) {
         {/* Right: bundle summary card */}
         <aside className="rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden flex flex-col">
           {effectiveThumbnail && (
-            <div className="h-40 w-full bg-slate-950 overflow-hidden">
+            <div className="w-full aspect-video bg-slate-950 overflow-hidden">
               <img
                 src={effectiveThumbnail}
                 alt={bundle.title}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             </div>
           )}

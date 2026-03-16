@@ -81,11 +81,11 @@ function BundleCardWithBuy({
       className="w-full group rounded-2xl border border-slate-800 bg-slate-950/95 px-3 sm:px-4 py-3 sm:py-4 text-left flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4 hover:border-cyan-400/70 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(8,47,73,0.9)] transition-all cursor-pointer"
     >
       {bundle.thumbnailUrl && (
-        <div className="relative w-full sm:w-32 md:w-40 h-36 sm:h-auto flex-shrink-0">
+        <div className="relative w-full sm:w-32 md:w-40 aspect-video flex-shrink-0">
           <img
             src={bundle.thumbnailUrl}
             alt={bundle.title}
-            className="w-full h-full object-cover rounded-xl border border-slate-800/70"
+            className="w-full h-full object-contain rounded-xl border border-slate-800/70"
           />
         </div>
       )}

@@ -171,11 +171,11 @@ export function NotesPage() {
               >
                 {/* Thumbnail on the left, if provided */}
                 {bundle.thumbnailUrl && (
-                  <div className="relative w-full sm:w-32 md:w-40 h-36 sm:h-auto flex-shrink-0">
+                  <div className="relative w-full sm:w-32 md:w-40 aspect-video flex-shrink-0">
                     <img
                       src={bundle.thumbnailUrl}
                       alt={bundle.title}
-                      className="w-full h-full object-cover rounded-xl border border-slate-800/70"
+                      className="w-full h-full object-contain rounded-xl border border-slate-800/70"
                     />
                   </div>
                 )}
