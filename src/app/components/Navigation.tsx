@@ -13,8 +13,9 @@ export function Navigation() {
   const navLinks = [
     { label: "Home", to: "/" },
     { label: "NEET", to: "/neet" },
-    { label: "JEE(mains)", to: "/jee-main" },
-    { label: "JEE(advanced)", to: "/jee-advanced" },
+    { label: "JEE (Mains)", to: "/jee-main" },
+    { label: "JEE (Advanced)", to: "/jee-advanced" },
+    { label: "CBSE", to: "/cbse" },
   ];
 
   return (

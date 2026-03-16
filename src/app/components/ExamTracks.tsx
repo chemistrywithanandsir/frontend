@@ -1,17 +1,20 @@
 import { motion } from "motion/react";
 import { Target, TrendingUp, BookOpen, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function ExamTracks() {
   const tracks = [
     {
       icon: Target,
       title: "NEET Chemistry",
+      to: "/neet",
       description:
-        "Comprehensive prep for NEET with 20+ years of PYQs, concept-focused notes, and NCERT alignment",
+        "Comprehensive Preparation for NEET with 20+ Years of PYQs, Concept Focused Notes, & Strictly Aligned with NCERT",
       features: [
-        "NCERT-based foundation",
-        "Previous Year Questions",
-        "Biology-Chemistry integration",
+        "NCERT-based conceptual foundation",
+        "Chapter-wise Previous Year Questions (PYQs)",
+        "High-yield reactions and mechanisms",
+        "Concept-focused short notes for quick revision",
       ],
       color: "from-sky-500 via-cyan-400 to-emerald-400",
       bgColor: "from-sky-500/10 via-cyan-500/5 to-emerald-500/10",
@@ -19,12 +22,14 @@ export function ExamTracks() {
     {
       icon: TrendingUp,
       title: "JEE Main Chemistry",
+      to: "/jee-main",
       description:
-        "Chapter-wise practice with pattern-based approach for JEE Main shifts and numerical mastery",
+        "Chapter Wise Practice with Pattern Based Approach for JEE Main Shifts & Numerical Mastery",
       features: [
-        "All shift variations",
-        "Numerical problem focus",
-        "Quick revision notes",
+        "Chapter Wise Practice Aligned with JEE Main Pattern",
+        "Questions from All Previous Exam Shifts",
+        "Strong Focus on Numerical Problem Solving",
+        "Formula Based Rapid Revision Notes",
       ],
       color: "from-violet-500 via-indigo-500 to-sky-400",
       bgColor: "from-violet-500/10 via-indigo-500/5 to-sky-500/10",
@@ -32,12 +37,14 @@ export function ExamTracks() {
     {
       icon: Target,
       title: "JEE Advanced Chemistry",
+      to: "/jee-advanced",
       description:
-        "Advanced problem-solving with multi-concept PYQs, integer-type questions and deep theory coverage.",
+        "Advanced Problem Solving with Multi Concept PYQs, Integer Type Questions & Detail Theory Coverage.",
       features: [
-        "Multi-step conceptual problems",
-        "Integer & multi-correct practice",
-        "Advanced theory-linked notes",
+        "Multi Concept & Multi Step Problems",
+        "Advanced Theoretical Insights",
+        "Concept Integration Across Chapters",
+        "Deep Analytical Problem Solving Approach",
       ],
       color: "from-fuchsia-500 via-purple-500 to-indigo-400",
       bgColor: "from-fuchsia-500/10 via-purple-500/5 to-indigo-500/10",
@@ -45,12 +52,13 @@ export function ExamTracks() {
     {
       icon: GraduationCap,
       title: "CBSE Chemistry",
+      to: "/cbse",
       description:
-        "NCERT-first CBSE board preparation with focused PYQs, exemplar-style questions and crisp notes.",
+        "NCERT First CBSE Board Preparation with Focused PYQs, Exemplar Style Questions & Crisp Notes.",
       features: [
-        "NCERT line-by-line coverage",
-        "Board-style PYQs & examples",
-        "High-scoring chapter notes",
+        "NCERT Line-by-Line Coverage",
+        "Board Style Previous Year Questions Papers & Sample Papers",
+        "Exam Oriented Structured Notes",
       ],
       color: "from-emerald-400 via-teal-400 to-cyan-400",
       bgColor: "from-emerald-500/10 via-teal-500/5 to-cyan-500/10",
@@ -87,8 +95,8 @@ export function ExamTracks() {
             </span>
           </h2>
           <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-            Tailored chemistry preparation for NEET, JEE Main, JEE Advanced & CBSE
-            with dedicated resources for each exam pattern.
+            Tailored Chemistry Preparation for NEET, JEE Main, JEE Advanced & CBSE
+            with Dedicated Resources for Each Exam Pattern.
           </p>
         </motion.div>
 
@@ -104,45 +112,46 @@ export function ExamTracks() {
               whileHover={{ y: -10 }}
               className="group relative"
             >
-              {/* Glow */}
-              <div
-                className={`absolute -inset-1 bg-gradient-to-br ${track.bgColor} rounded-3xl blur-2xl transition-all opacity-40 group-hover:opacity-80`}
-              />
+              <Link to={track.to} className="block h-full">
+                {/* Glow */}
+                <div
+                  className={`absolute -inset-1 bg-gradient-to-br ${track.bgColor} rounded-3xl blur-2xl transition-all opacity-40 group-hover:opacity-80`}
+                />
 
-              <div className="relative overflow-hidden bg-slate-900/70 backdrop-blur-md rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all border border-slate-700/80">
-                {/* Subtle top sheen */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
+                <div className="relative h-full overflow-hidden bg-slate-900/70 backdrop-blur-md rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all border border-slate-700/80">
+                  {/* Subtle top sheen */}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
 
-                {/* Icon */}
-                <motion.div
-                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${track.color} flex items-center justify-center mb-6 shadow-[0_14px_40px_rgba(0,0,0,0.35)]`}
-                  whileHover={{ rotate: 10, scale: 1.06 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 16 }}
-                >
-                  <track.icon className="text-white" size={32} />
-                </motion.div>
+                  {/* Icon */}
+                  <motion.div
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${track.color} flex items-center justify-center mb-6 shadow-[0_14px_40px_rgba(0,0,0,0.35)]`}
+                    whileHover={{ rotate: 10, scale: 1.06 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                  >
+                    <track.icon className="text-white" size={32} />
+                  </motion.div>
 
-                {/* Content */}
-                <h3 className="text-2xl font-bold mb-3 text-slate-50">
-                  {track.title}
-                </h3>
-                <p className="text-slate-300 mb-6 leading-relaxed">
-                  {track.description}
-                </p>
+                  {/* Content */}
+                  <h3 className="text-2xl font-bold mb-3 text-slate-50">
+                    {track.title}
+                  </h3>
+                  <p className="text-slate-300 mb-6 leading-relaxed">
+                    {track.description}
+                  </p>
 
-                {/* Features List */}
-                <ul className="space-y-3 mb-6">
-                  {track.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${track.color} mt-2`}
-                      />
-                      <span className="text-sm text-slate-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-              </div>
+                  {/* Features List */}
+                  <ul className="space-y-3 mb-6">
+                    {track.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${track.color} mt-2`}
+                        />
+                        <span className="text-sm text-slate-300">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Link>
             </motion.div>
           ))}
         </div>

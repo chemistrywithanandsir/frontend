@@ -93,8 +93,25 @@ export const JEE_ADVANCED_CHAPTERS: ChapterItem[] = [
   { id: "ja-o-30", label: "Practical Organic Chemistry", chemistryType: "Organic" },
 ];
 
+export const CBSE_CHAPTERS: ChapterItem[] = [
+  // Physical Chemistry – quantitative principles and laws
+  { id: "cbse-p-2", label: "Solutions (Chapter 2)", chemistryType: "Physical" },
+  { id: "cbse-p-3", label: "Electrochemistry (Chapter 3)", chemistryType: "Physical" },
+  { id: "cbse-p-4", label: "Chemical Kinetics (Chapter 4)", chemistryType: "Physical" },
+  // Inorganic Chemistry – elements, compounds, coordination
+  { id: "cbse-i-8", label: "d- and f-Block Elements (Chapter 8)", chemistryType: "Inorganic" },
+  { id: "cbse-i-9", label: "Coordination Compounds (Chapter 9)", chemistryType: "Inorganic" },
+  // Organic Chemistry – carbon compounds and reactions
+  { id: "cbse-o-10", label: "Haloalkanes and Haloarenes (Chapter 10)", chemistryType: "Organic" },
+  { id: "cbse-o-11", label: "Alcohols, Phenols and Ethers (Chapter 11)", chemistryType: "Organic" },
+  { id: "cbse-o-12", label: "Aldehydes, Ketones and Carboxylic Acids (Chapter 12)", chemistryType: "Organic" },
+  { id: "cbse-o-13", label: "Amines (Chapter 13)", chemistryType: "Organic" },
+  { id: "cbse-o-14", label: "Biomolecules (Chapter 14)", chemistryType: "Organic" },
+];
+
 export const EXAM_CHAPTERS: Record<string, ChapterItem[]> = {
   neet: NEET_CHAPTERS,
   "jee-main": JEE_MAIN_CHAPTERS,
   "jee-advanced": JEE_ADVANCED_CHAPTERS,
+  cbse: CBSE_CHAPTERS,
 };

@@ -1,22 +1,8 @@
 import { motion } from "motion/react";
-import { FileText, BookOpen, ClipboardList, CheckCircle2 } from "lucide-react";
+import { FileText, BookOpen, CheckCircle2 } from "lucide-react";
 
 export function ProductsSection() {
   const products = [
-    {
-      icon: ClipboardList,
-      title: "Chapter-wise PYQs",
-      to: "/dashboard/pyq",
-      description:
-        "Practice previous year questions organized by chapter, topic, and exam pattern",
-      features: [
-        "NEET & JEE papers (2005-2025)",
-        "Tagged by year, shift & difficulty",
-        "Practice & test modes",
-        "Detailed solutions",
-      ],
-      gradient: "from-sky-500 to-indigo-500",
-    },
     {
       icon: BookOpen,
       title: "Premium Notes",
@@ -103,7 +89,7 @@ export function ProductsSection() {
         </motion.div>
 
         {/* Product Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid md:grid-cols-2 gap-8 mb-12 max-w-5xl mx-auto">
           {products.map((product, index) => (
             <motion.div
               key={product.title}

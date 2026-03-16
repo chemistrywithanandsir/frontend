@@ -43,6 +43,22 @@ export function ContactPage() {
             </p>
           </div>
 
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+              WhatsApp support
+            </p>
+            <p className="mt-2 text-base md:text-lg font-semibold text-cyan-300">
+              <a
+                href="https://wa.me/919057846086"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-cyan-500/60"
+              >
+                +91 9057846086
+              </a>
+            </p>
+          </div>
+
           <p className="text-xs text-slate-500">
             We typically respond within 1–3 working days. For urgent payment
             disputes or suspected fraudulent activity on your payment method,

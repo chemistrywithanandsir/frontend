@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { useState, useMemo, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -11,9 +11,11 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { BookOpen, ClipboardList, FileText, BookMarked, FlaskConical, LogIn } from "lucide-react";
 import { EXAM_CHAPTERS } from "../data/weightageChapters";
 import { fetchExamWeightagePublic } from "../utils/apiWeightage";
 import type { ShiftEntry } from "../utils/shiftWeightageStorage";
+import { useAuth } from "../context/AuthContext";
 
 const EXAM_NAMES: Record<string, string> = {
   neet: "NEET",
@@ -41,8 +43,18 @@ const CustomTooltip = ({
   );
 };
 
+const ACTION_CARDS = [
+  { icon: BookOpen,      label: "View Notes",              to: "/dashboard/notes" },
+  { icon: ClipboardList, label: "Solve Chapterwise PYQs",  to: "/dashboard/pyq"   },
+  { icon: FileText,      label: "Get Chapterwise Notes",   to: "/dashboard/notes" },
+  { icon: BookMarked,    label: "Get NCERT Notes",         to: "/dashboard/notes" },
+  { icon: FlaskConical,  label: "Important Reactions",     to: "/dashboard/notes" },
+] as const;
+
 export function ExamWeightagePage() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signInWithGoogle } = useAuth();
   const examId = location.pathname.replace("/", "") || "";
   const normalizedId = examId === "jee-mains" ? "jee-main" : examId;
   const chapters = EXAM_CHAPTERS[normalizedId];
@@ -225,6 +237,47 @@ export function ExamWeightagePage() {
           <p className="text-slate-400 mb-8">
             No weightage data added yet. Data will appear here once the admin adds chapterwise questions for a year.
           </p>
+
+          {/* Quick-access action cards — always visible */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <h2 className="text-lg font-semibold text-slate-100 mb-4">
+              Explore {examName} Resources
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {ACTION_CARDS.map(({ icon: Icon, label, to }) => (
+                <motion.button
+                  key={label}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    if (user) {
+                      navigate(to);
+                    } else {
+                      void signInWithGoogle();
+                    }
+                  }}
+                  className="group flex flex-col items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-5 text-center shadow-md hover:border-cyan-500/50 hover:bg-slate-900 transition-all cursor-pointer"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:from-cyan-500/30 group-hover:to-indigo-500/30 transition-all">
+                    <Icon size={22} className="text-cyan-300" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-slate-200 leading-snug">
+                    {label}
+                  </span>
+                  {!user && (
+                    <span className="flex items-center gap-1 text-[10px] text-slate-500 group-hover:text-cyan-400 transition-colors">
+                      <LogIn size={10} />
+                      Sign in
+                    </span>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -514,6 +567,48 @@ export function ExamWeightagePage() {
             </div>
           </motion.div>
         )}
+
+        {/* Quick-access action cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mb-8"
+        >
+          <h2 className="text-lg font-semibold text-slate-100 mb-4">
+            Explore {examName} Resources
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {ACTION_CARDS.map(({ icon: Icon, label, to }) => (
+              <motion.button
+                key={label}
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  if (user) {
+                    navigate(to);
+                  } else {
+                    void signInWithGoogle();
+                  }
+                }}
+                className="group flex flex-col items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-5 text-center shadow-md hover:border-cyan-500/50 hover:bg-slate-900 transition-all cursor-pointer"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:from-cyan-500/30 group-hover:to-indigo-500/30 transition-all">
+                  <Icon size={22} className="text-cyan-300" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-200 leading-snug">
+                  {label}
+                </span>
+                {!user && (
+                  <span className="flex items-center gap-1 text-[10px] text-slate-500 group-hover:text-cyan-400 transition-colors">
+                    <LogIn size={10} />
+                    Sign in
+                  </span>
+                )}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
 
       </div>
     </div>

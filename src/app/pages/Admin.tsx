@@ -1,5 +1,5 @@
 // src/app/pages/Admin.tsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
@@ -14,7 +14,7 @@ import {
   FileSearch,
 } from "lucide-react";
 import { EXAM_CHAPTERS } from "../data/weightageChapters";
-import { getWeightage, setWeightage, getYearsWithData } from "../utils/weightageStorage";
+import { getWeightage, setWeightage } from "../utils/weightageStorage";
 import {
   getShiftWeightageForJeeMain,
   setShiftWeightageForJeeMain,
@@ -113,6 +113,7 @@ export function AdminAnandPage() {
   const [adminSection, setAdminSection] = useState<AdminSection>("main");
   const [selectedExamId, setSelectedExamId] = useState<string>("neet");
   const [weightageYear, setWeightageYear] = useState<string>("2025");
+  const [weightageByYear, setWeightageByYear] = useState<Record<string, Record<string, number>>>({});
   const [weightageValues, setWeightageValues] = useState<Record<string, number>>({});
   const [shiftEntries, setShiftEntries] = useState<ShiftEntry[]>([]);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
@@ -358,6 +359,59 @@ export function AdminAnandPage() {
     }
   };
 
+  const loadMyNotes = async () => {
+    try {
+      if (userDashboardPanel !== "notes") return;
+
+      setNotesListLoading(true);
+      setNotesListError(null);
+
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setNotesList([]);
+        setNotesListLoading(false);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/admin/notes/list`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail =
+          (Array.isArray((json as any).detail)
+            ? (json as any).detail
+                .map((d: { msg?: string }) => d.msg)
+                .join(" ")
+            : (json as any).detail) || res.statusText;
+        throw new Error(detail);
+      }
+
+      const list: any[] = Array.isArray((json as any).notes)
+        ? (json as any).notes
+        : [];
+      setNotesList(
+        list.map((n) => ({
+          id: n.id,
+          exam_id: n.exam_id,
+          chemistry_type: n.chemistry_type ?? null,
+          subject: n.subject ?? null,
+          title: n.title,
+          pdf_url: n.pdf_url,
+          created_at: n.created_at,
+        }))
+      );
+    } catch (err) {
+      setNotesListError(
+        err instanceof Error ? err.message : "Failed to load notes."
+      );
+      setNotesList([]);
+    } finally {
+      setNotesListLoading(false);
+    }
+  };
+
   // PYQ exam mode: standard (JEE/NEET chemistry) vs CBSE (Physics/Chemistry/Maths)
   const [pyqExamMode, setPyqExamMode] = useState<"standard" | "cbse">("standard");
   const [cbseSubject, setCbseSubject] = useState<"" | "Physics" | "Chemistry" | "Maths">("");
@@ -420,7 +474,12 @@ export function AdminAnandPage() {
     pdf_url: string;
     created_at: string;
   };
+  const [notesList, setNotesList] = useState<NotesRecord[]>([]);
+  const [notesListLoading, setNotesListLoading] = useState(false);
+  const [notesListError, setNotesListError] = useState<string | null>(null);
+  const [notesDeleteBusyId, setNotesDeleteBusyId] = useState<string | null>(null);
   const [bundleNotes, setBundleNotes] = useState<NotesRecord[]>([]);
+  const [bundleNotesSearch, setBundleNotesSearch] = useState("");
   const [allBundleNotes, setAllBundleNotes] = useState<Record<string, NotesRecord>>({});
   const [bundleNotesLoading, setBundleNotesLoading] = useState(false);
   const [bundleNotesError, setBundleNotesError] = useState<string | null>(null);
@@ -451,6 +510,22 @@ export function AdminAnandPage() {
   const [editingBundleNotes, setEditingBundleNotes] = useState<NotesRecord[]>([]);
   const [editingBundleNoteIds, setEditingBundleNoteIds] = useState<string[]>([]);
   const [editingBundleNotesLoading, setEditingBundleNotesLoading] = useState(false);
+
+  const filteredBundleNotes = useMemo(() => {
+    const query = bundleNotesSearch.trim().toLowerCase();
+    if (!query) return bundleNotes;
+    return bundleNotes.filter((note) => {
+      const haystack = [
+        note.title,
+        note.chemistry_type ?? "",
+        note.subject ?? "",
+        note.exam_id ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [bundleNotes, bundleNotesSearch]);
 
   // Whenever we enter the UserDashboard admin section, start from the action cards view
   useEffect(() => {
@@ -506,6 +581,25 @@ export function AdminAnandPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userDashboardPanel]);
+
+  // Auto-load notes list whenever the notes panel is opened.
+  useEffect(() => {
+    if (userDashboardPanel !== "notes") return;
+    void loadMyNotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userDashboardPanel]);
+
+  // Refresh notes list after a successful upload via a custom event.
+  useEffect(() => {
+    const handler = () => {
+      void loadMyNotes();
+    };
+    window.addEventListener("notes-uploaded", handler as EventListener);
+    return () => {
+      window.removeEventListener("notes-uploaded", handler as EventListener);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch notes for bundle maker whenever filters change and bundles panel is open
   useEffect(() => {
@@ -734,16 +828,25 @@ export function AdminAnandPage() {
                 <span className="font-semibold text-cyan-300">{email}</span>
               </p>
             </div>
-            <button
-              type="button"
-              onClick={async () => {
-                await signOut();
-                navigate("/");
-              }}
-              className="px-4 py-2 rounded-lg border border-slate-700 text-sm font-semibold text-slate-100 hover:bg-slate-800 transition"
-            >
-              Sign out
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard")}
+                className="px-4 py-2 rounded-lg border border-cyan-600/70 text-sm font-semibold text-cyan-100 hover:bg-cyan-600/10 transition"
+              >
+                Go to User Dashboard
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await signOut();
+                  navigate("/");
+                }}
+                className="px-4 py-2 rounded-lg border border-slate-700 text-sm font-semibold text-slate-100 hover:bg-slate-800 transition"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -794,6 +897,7 @@ export function AdminAnandPage() {
       { id: "neet", label: "NEET", path: "/neet" },
       { id: "jee-main", label: "JEE(mains)", path: "/jee-main" },
       { id: "jee-advanced", label: "JEE(advanced)", path: "/jee-advanced" },
+      { id: "cbse", label: "CBSE (Chemistry)", path: "/cbse" },
     ];
     return (
       <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -836,12 +940,19 @@ export function AdminAnandPage() {
                   setAdminSection("exam-weightage");
                   const res = await fetchExamWeightagePublic(exam.id);
                   const byYear = res.byYear || {};
+                  const localByYear = getWeightage(exam.id);
+                  const mergedByYear = { ...localByYear, ...byYear };
+                  setWeightageByYear(mergedByYear);
+                  setWeightage(exam.id, mergedByYear);
                   const years = Object.keys(byYear)
                     .map((y) => String(y))
                     .sort((a, b) => Number(b) - Number(a));
-                  const yearToShow = years[0] || "2025";
+                  const mergedYears = Object.keys(mergedByYear)
+                    .map((y) => String(y))
+                    .sort((a, b) => Number(b) - Number(a));
+                  const yearToShow = mergedYears[0] || years[0] || "2025";
                   setWeightageYear(yearToShow);
-                  setWeightageValues((byYear[yearToShow] as Record<string, number>) || {});
+                  setWeightageValues((mergedByYear[yearToShow] as Record<string, number>) || {});
                   if (exam.id === "jee-main") {
                     const shifts: ShiftEntry[] = (res.shifts || []).map((s) => ({
                       id: s.id,
@@ -896,8 +1007,14 @@ export function AdminAnandPage() {
       neet: "NEET",
       "jee-main": "JEE(mains)",
       "jee-advanced": "JEE(advanced)",
+      cbse: "CBSE (Chemistry)",
     };
-    const yearsWithData = getYearsWithData(selectedExamId);
+    const yearsWithData = Object.keys(weightageByYear)
+      .filter((y) => {
+        const chapterData = weightageByYear[y];
+        return chapterData && Object.keys(chapterData).length > 0;
+      })
+      .sort((a, b) => Number(b) - Number(a));
     const baseYears = yearsWithData.length > 0 ? yearsWithData : ["2025"];
     const allYears = baseYears.includes(weightageYear)
       ? baseYears
@@ -905,6 +1022,13 @@ export function AdminAnandPage() {
     const currentYearData = weightageValues;
 
     const handleSave = async () => {
+      const localSnapshot = {
+        ...weightageByYear,
+        [weightageYear]: { ...currentYearData },
+      };
+      setWeightageByYear(localSnapshot);
+      setWeightage(selectedExamId, localSnapshot);
+
       // Persist year-wise chapter weightage to Supabase
       try {
         const { data } = await supabase.auth.getSession();
@@ -923,6 +1047,7 @@ export function AdminAnandPage() {
         const stored = getWeightage(selectedExamId);
         stored[weightageYear] = { ...currentYearData };
         setWeightage(selectedExamId, stored);
+        setWeightageByYear(stored);
       }
 
       if (selectedExamId === "jee-main" && editingShiftId) {
@@ -997,8 +1122,7 @@ export function AdminAnandPage() {
       // Auto-save current year + (for JEE Main) current shift before switching
       handleSave();
       setWeightageYear(y);
-      const stored = getWeightage(selectedExamId);
-      setWeightageValues(stored[y] || {});
+      setWeightageValues(weightageByYear[y] || {});
       if (selectedExamId === "jee-main") {
         const shiftAll = getShiftWeightageForJeeMain();
         setShiftEntries(shiftAll[y] || []);
@@ -1055,8 +1179,7 @@ export function AdminAnandPage() {
                   // Auto-save current year + (for JEE Main) current shift before switching
                   handleSave();
                   setWeightageYear(y);
-                  const stored = getWeightage(selectedExamId);
-                  setWeightageValues(stored[y] || {});
+                  setWeightageValues(weightageByYear[y] || {});
 
                   // When switching years, also load / reset JEE Main shift-wise data
                   if (selectedExamId === "jee-main") {
@@ -3049,6 +3172,7 @@ export function AdminAnandPage() {
                 if (notesThumbnailInputRef.current) {
                   notesThumbnailInputRef.current.value = "";
                 }
+              window.dispatchEvent(new CustomEvent("notes-uploaded"));
               } catch (err) {
                 setNotesMessage({
                   type: "error",
@@ -3071,6 +3195,112 @@ export function AdminAnandPage() {
             {notesMessage.text}
           </p>
         )}
+        <div className="mt-6 border-t border-slate-800 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-100">
+                Your uploaded notes
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Recently uploaded notes PDFs. You can open or delete them here.
+              </p>
+            </div>
+          </div>
+          {notesListLoading ? (
+            <p className="text-xs text-slate-400">Loading notes…</p>
+          ) : notesListError ? (
+            <p className="text-xs text-red-400">{notesListError}</p>
+          ) : notesList.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No notes uploaded yet.
+            </p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/60 divide-y divide-slate-800">
+              {notesList.map((n) => (
+                <div
+                  key={n.id}
+                  className="flex items-center justify-between gap-3 px-3 py-2.5 md:px-4"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-slate-100 truncate">
+                      {n.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {n.chemistry_type || n.subject || "—"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={n.pdf_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-full border border-sky-500/70 px-2 py-0.5 text-[11px] text-sky-200 hover:bg-sky-500/20"
+                    >
+                      Open
+                    </a>
+                    <button
+                      type="button"
+                      className="inline-flex items-center rounded-full border border-red-500/70 px-2 py-0.5 text-[11px] text-red-200 hover:bg-red-500/20 disabled:opacity-60"
+                      disabled={notesDeleteBusyId === n.id}
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            "Delete this note PDF permanently? This cannot be undone and will remove it from any bundles."
+                          )
+                        ) {
+                          return;
+                        }
+                        try {
+                          setNotesDeleteBusyId(n.id);
+                          const { data } = await supabase.auth.getSession();
+                          const token = data.session?.access_token;
+                          if (!token) {
+                            setNotesListError("Not signed in.");
+                            return;
+                          }
+                          const res = await fetch(
+                            `${API_BASE}/admin/notes/delete`,
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${token}`,
+                              },
+                              body: JSON.stringify({ note_id: n.id }),
+                            }
+                          );
+                          const json = await res.json().catch(() => ({}));
+                          if (!res.ok) {
+                            const detail =
+                              (Array.isArray((json as any).detail)
+                                ? (json as any).detail
+                                    .map((d: { msg?: string }) => d.msg)
+                                    .join(" ")
+                                : (json as any).detail) || res.statusText;
+                            throw new Error(detail);
+                          }
+                          setNotesList((prev) =>
+                            prev.filter((item) => item.id !== n.id)
+                          );
+                        } catch (err) {
+                          setNotesListError(
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to delete note."
+                          );
+                        } finally {
+                          setNotesDeleteBusyId(null);
+                        }
+                      }}
+                    >
+                      {notesDeleteBusyId === n.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
       )}
 
@@ -3206,6 +3436,13 @@ export function AdminAnandPage() {
                 </span>
               )}
             </label>
+            <input
+              type="text"
+              value={bundleNotesSearch}
+              onChange={(e) => setBundleNotesSearch(e.target.value)}
+              placeholder="Search notes by title / type / subject"
+              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
             <div className="bg-slate-950 border border-slate-700 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2 text-sm text-slate-200">
               {bundleNotesLoading && (
                 <p className="text-[11px] text-slate-400">Loading notes…</p>
@@ -3213,14 +3450,16 @@ export function AdminAnandPage() {
               {!bundleNotesLoading && bundleNotesError && (
                 <p className="text-[11px] text-red-400">{bundleNotesError}</p>
               )}
-              {!bundleNotesLoading && !bundleNotesError && bundleNotes.length === 0 && (
+              {!bundleNotesLoading && !bundleNotesError && filteredBundleNotes.length === 0 && (
                 <p className="text-[11px] text-slate-400">
-                  No notes found for this filter yet. Upload some notes first.
+                  {bundleNotes.length === 0
+                    ? "No notes found for this filter yet. Upload some notes first."
+                    : "No notes match your search."}
                 </p>
               )}
               {!bundleNotesLoading &&
                 !bundleNotesError &&
-                bundleNotes.map((note) => {
+                filteredBundleNotes.map((note) => {
                   const checked = selectedNoteIds.includes(note.id);
                   const subtitleParts: string[] = [];
                   if (note.chemistry_type) subtitleParts.push(note.chemistry_type);
@@ -3243,9 +3482,9 @@ export function AdminAnandPage() {
                         }}
                       />
                       <div className="flex flex-col min-w-0">
-                        <span className="truncate">{note.title}</span>
+                        <span className="whitespace-normal break-words">{note.title}</span>
                         {subtitleParts.length > 0 && (
-                          <span className="text-[10px] text-slate-500 truncate">
+                          <span className="text-[10px] text-slate-500 whitespace-normal break-words">
                             {subtitleParts.join(" · ")}
                           </span>
                         )}
@@ -3259,7 +3498,7 @@ export function AdminAnandPage() {
             <p className="text-xs text-slate-500">
               {pyqBrowseAll
                 ? "No uploaded questions found yet."
-                : "Select your exam type above to see your uploaded PYQs here. Use Year and Chapter Name to filter."}
+                : ""}
             </p>
           ) : (
             <>
@@ -3679,9 +3918,9 @@ export function AdminAnandPage() {
                         key={id}
                         className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 border border-slate-600 px-2 py-0.5 text-[10px] text-slate-100 max-w-full"
                       >
-                        <span className="truncate max-w-[10rem]">{label}</span>
+                        <span className="whitespace-normal break-words">{label}</span>
                         {meta.length > 0 && (
-                          <span className="text-[9px] text-slate-400 truncate max-w-[6rem]">
+                          <span className="text-[9px] text-slate-400 whitespace-normal break-words">
                             {meta.join(" · ")}
                           </span>
                         )}
@@ -4322,11 +4561,11 @@ export function AdminAnandPage() {
                             }
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="truncate text-slate-100">
+                            <span className="whitespace-normal break-words text-slate-100">
                               {n.title}
                             </span>
                             {meta.length > 0 && (
-                              <span className="text-[10px] text-slate-500 truncate">
+                              <span className="text-[10px] text-slate-500 whitespace-normal break-words">
                                 {meta.join(" · ")}
                               </span>
                             )}
@@ -4381,11 +4620,11 @@ export function AdminAnandPage() {
                               }}
                             />
                             <div className="flex flex-col min-w-0">
-                              <span className="truncate text-slate-100">
+                              <span className="whitespace-normal break-words text-slate-100">
                                 {n.title}
                               </span>
                               {meta.length > 0 && (
-                                <span className="text-[10px] text-slate-500 truncate">
+                                <span className="text-[10px] text-slate-500 whitespace-normal break-words">
                                   {meta.join(" · ")}
                                 </span>
                               )}

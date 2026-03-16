@@ -79,7 +79,7 @@ export function Hero() {
         </div>
 
         {/* Centered content card */}
-        <div className="relative mx-auto max-w-3xl text-center">
+        <div className="relative mx-auto max-w-3xl text-center -translate-y-4 md:-translate-y-5">
           {/* Soft glow behind content */}
           <div className="pointer-events-none absolute -inset-20 rounded-[40px] bg-gradient-to-br from-cyan-500/15 via-sky-500/5 to-indigo-500/10 blur-3xl" />
 
@@ -92,7 +92,7 @@ export function Hero() {
           >
             <Atom className="text-cyan-400" size={18} />
             <span className="text-xs sm:text-sm font-medium text-slate-100">
-              Beautiful Chemistry for Beautiful Minds
+              Simplifying Chemistry for Competitive Success!
             </span>
           </motion.div>
 
@@ -101,22 +101,31 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="text-[2.6rem] leading-tight md:text-[3.5rem] lg:text-6xl md:leading-tight font-extrabold mb-5 tracking-tight"
+            className="-mt-2 md:-mt-3 text-[2.6rem] leading-tight md:text-[3.5rem] lg:text-6xl md:leading-tight font-extrabold mb-5 tracking-tight"
           >
             <span className="relative inline-block">
               {/* Glow behind the title */}
               <span className="pointer-events-none absolute -inset-1 md:-inset-1.5 rounded-[1.75rem] bg-gradient-to-r from-cyan-500/40 via-sky-400/30 to-emerald-400/40 blur-2xl opacity-70" />
 
               <span className="relative inline-flex flex-col gap-1">
-                <span className="text-[0.65rem] md:text-xs font-semibold tracking-[0.35em] uppercase text-cyan-200/80">
-                  Chemistry with
-                </span>
+
                 <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-emerald-200 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(45,212,191,0.55)]">
-                  Chemistry By Anand
+                  Chemistry By Anand Sir
                 </span>
               </span>
             </span>
           </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.24 }}
+            className="mb-6 mx-auto text-center"
+          >
+            <p className="whitespace-nowrap text-xs sm:text-sm md:text-base font-semibold text-cyan-100/95 leading-relaxed">
+              Mentor of AIR 635 (JEE Mains) • AIR 69, 161, 297 (JEE Advanced) • NEET AIR 151 &amp; Many More
+            </p>
+          </motion.div>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -124,8 +133,8 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-lg md:text-2xl text-slate-100 mb-4"
           >
-            Master Competitive Exams Chemistry with chapter-wise PYQs, premium
-            notes & smart tests.
+            Master Competitive Exams Chemistry with Chapter-Wise PYQs, Premium
+            Notes & Smart Tests.
           </motion.p>
 
           <motion.p
@@ -134,8 +143,8 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-sm md:text-base text-slate-300 mb-10 max-w-2xl mx-auto"
           >
-            Your complete chemistry prep platform with 10+ years of expert
-            teaching experience from top institutes like ALLEN, Aakash &
+            Your Complete Chemistry Preparation Platform with 7+ Years of Expert
+            Teaching Experience from Top Institutes like ALLEN, Aakash &
             Narayana.
           </motion.p>
 
@@ -182,21 +191,21 @@ export function Hero() {
         >
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-sky-600 mb-2">
-              10+
+              7+
             </div>
             <div className="text-sm text-slate-300">Years Teaching</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-sky-600 mb-2">
-              10k+
+              10,000+
             </div>
             <div className="text-sm text-slate-300">Students Taught</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-sky-600 mb-2">
-              3
+              50%
             </div>
-            <div className="text-sm text-slate-300">Top Institutes</div>
+            <div className="text-sm text-slate-300">Average Classroom <br /> Selection Ratio</div>
           </div>
         </motion.div>
       </div>

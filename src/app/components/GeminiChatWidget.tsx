@@ -145,11 +145,11 @@ export function GeminiChatWidget() {
         type="button"
         onClick={() => setOpen(true)}
         className="fixed bottom-5 right-5 z-[70] rounded-full border border-cyan-400/60 bg-gradient-to-r from-cyan-500/90 via-sky-500/90 to-emerald-400/90 backdrop-blur px-5 py-3 shadow-[0_24px_70px_rgba(8,47,73,0.95)] hover:from-cyan-400 hover:via-sky-400 hover:to-emerald-300 transition-all hover:-translate-y-0.5"
-        aria-label="Open Ask Anything with Anand chat"
+        aria-label="Open Ask Anything with Anand Sir chat"
       >
         <span className="flex items-center gap-2 text-sm font-semibold text-slate-950">
           <MessageCircle className="h-4 w-4" />
-          Ask anything with Anand
+          Ask anything with Anand Sir
         </span>
       </button>
 
@@ -169,7 +169,7 @@ export function GeminiChatWidget() {
               <header className="relative px-5 py-4 border-b border-slate-800/80 bg-gradient-to-r from-cyan-500/15 via-slate-950 to-emerald-400/10 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-300/80">
-                  Ask anything with Anand
+                  Ask anything with Anand Sir
                 </p>
                 <p className="text-sm font-semibold text-slate-100">
                   Personal chemistry tutor

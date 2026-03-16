@@ -12,7 +12,7 @@ export function Footer() {
         <div className="text-xs md:text-sm">
           <p className="font-medium text-slate-200">© {currentYear} Chemistry By Anand</p>
           <p className="text-slate-500 mt-0.5">
-            Focused chemistry preparation for NEET, JEE Main, JEE Advanced & CBSE.
+            Focused Chemistry Preparation for NEET, JEE Main, JEE Advanced & CBSE.
           </p>
         </div>
 

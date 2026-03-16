@@ -6,22 +6,22 @@ export function MentorSection() {
   const credentials = [
     {
       icon: GraduationCap,
-      title: "10+ years teaching experience",
+      title: "7+ Years Teaching Experience",
       description: "",
     },
     {
       icon: Building2,
-      title: "M.Sc. Chemistry, DU",
+      title: "M.Sc. Chemistry, University Of Delhi",
       description: "",
     },
     {
       icon: Users,
-      title: "10K+ students impacted",
+      title: "10K+ Students Impacted",
       description: "",
     },
     {
       icon: Award,
-      title: "Recognized by MHRD",
+      title: "Produce Top Rankers in NEET, JEE Mains & Advanced",
       description: "",
     },
   ];
@@ -59,11 +59,12 @@ export function MentorSection() {
           >
             {/* Main Heading */}
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Taught by Anand Pandey
+              <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-6">
+                Teaching Philosophy{" "}
+                <span className="text-orange-400">of Anand Sir</span>
               </h2>
               <p className="text-gray-300 text-lg leading-relaxed">
-              As a Lecturer, my role goes beyond imparting knowledge I focus on assessing and monitoring student progress while providing tailored guidance that empowers them to achieve their academic goals. With a deep passion for Chemistry and a commitment to academic excellence, I strive to create an environment where learning truly thrives.
+              I focus not only on teaching chemistry but also on guiding students through their learning journey. By closely tracking progress and providing personalized support, I help students build strong concepts and achieve their academic goals. My aim is to create an environment where chemistry becomes clear, engaging, and rewarding to learn.
               </p>
             </div>
 
@@ -98,7 +99,7 @@ export function MentorSection() {
             >
               <Quote className="absolute -top-2 -left-4 text-orange-500/20" size={40} />
               <p className="text-gray-300 italic text-lg mb-2">
-                "Teaching is an art. I chose teaching over core engineering because I found my calling in interacting with the beautiful minds of our country."
+                "Teaching is an art. I chose the path of teaching because I found my true calling in guiding young minds and dedicating myself completely to teaching Chemistry."
               </p>
             </motion.div>
 
@@ -116,7 +117,7 @@ export function MentorSection() {
                   Teaching Journey
                 </h4>
                 <div className="space-y-2">
-                  {['ALLEN Kota - Senior Faculty', 'Narayana Academy - HOD Chemistry', 'Aakash Institute - Regional Head'].map((institute, index) => (
+                  {['ALLEN Kota - Senior Educator', 'Narayana Academy - Senior Educator', 'Aakash Institute - Senior Educator'].map((institute, index) => (
                     <motion.div
                       key={institute}
                       initial={{ opacity: 0, x: -10 }}
@@ -188,26 +189,7 @@ export function MentorSection() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6"
         >
-          {[
-            { value: '10+', label: 'Years Experience' },
-            { value: '10,000+', label: 'Students Taught' },
-            { value: '3', label: 'Top Institutes' },
-            { value: '98%', label: 'Success Rate' },
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
-              className="text-center bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10"
-            >
-              <div className="text-3xl md:text-4xl font-bold text-orange-400 mb-2">
-                {stat.value}
-              </div>
-              <div className="text-sm text-gray-400">{stat.label}</div>
-            </motion.div>
-          ))}
+
         </motion.div>
       </div>
     </section>

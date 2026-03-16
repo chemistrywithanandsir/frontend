@@ -17,6 +17,7 @@ import { PrivacyPage } from "./pages/Privacy";
 import { TermsPage } from "./pages/Terms";
 import { RefundPolicyPage } from "./pages/RefundPolicy";
 import { ContactPage } from "./pages/Contact";
+import { CbsePage } from "./pages/Cbse";
 import {
   PyqExamPage,
   PyqChemistryPage,
@@ -45,6 +46,14 @@ import { AdminAnandPage } from "./pages/Admin";
 
 function PublicLayout() {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // If a signed-in user somehow visits a public route, always push them
+  // to the main user dashboard instead of showing the marketing homepage.
+  if (user && location.pathname === "/") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <Navigation />
@@ -111,6 +120,7 @@ export default function App() {
           <Route path="/neet" element={<ExamWeightagePage />} />
           <Route path="/jee-main" element={<ExamWeightagePage />} />
           <Route path="/jee-advanced" element={<ExamWeightagePage />} />
+          <Route path="/cbse" element={<CbsePage />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />

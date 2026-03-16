@@ -2788,16 +2788,37 @@ function PyqQuestionAttemptPageInner() {
 
   // Must be defined before any early-returns to keep hook order stable.
   const answerType = currentQuestion?.answerType ?? "MCQ";
+  const answerModeLabel =
+    answerType === "MULTI"
+      ? "Multiple Correct"
+      : answerType === "NUMERIC"
+      ? "Numerical"
+      : "Single Correct";
   const multiCorrectSet = useMemo(() => {
     if (answerType !== "MULTI") return new Set<number>();
     const raw = (currentQuestion?.correctAnswer ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    const nums = raw
-      .map((x) => parseInt(x, 10))
-      .filter((n) => Number.isFinite(n) && n >= 1 && n <= 4);
-    return new Set(nums.map((n) => n - 1)); // store 0-based
+
+    const parsedIndexes = raw
+      .map((token) => {
+        if (/^[A-Za-z]$/.test(token)) {
+          const alphaIndex = token.toUpperCase().charCodeAt(0) - 65;
+          return Number.isFinite(alphaIndex) ? alphaIndex : NaN;
+        }
+        const numeric = parseInt(token, 10);
+        if (Number.isFinite(numeric)) return numeric - 1;
+        return NaN;
+      })
+      .filter(
+        (index) =>
+          Number.isFinite(index) &&
+          index >= 0 &&
+          index < (currentQuestion?.options.length ?? 0)
+      );
+
+    return new Set(parsedIndexes); // store 0-based
   }, [answerType, currentQuestion?.correctAnswer]);
 
   const [showSolution, setShowSolution] = useState(false);
@@ -2808,6 +2829,16 @@ function PyqQuestionAttemptPageInner() {
     false,
     false,
   ]);
+  const [multiResult, setMultiResult] = useState<
+    | null
+    | {
+        status: "correct" | "partial" | "wrong";
+        selectedCorrect: number;
+        totalCorrect: number;
+        selectedWrong: number;
+        marksAwarded: number;
+      }
+  >(null);
   const [numericAnswer, setNumericAnswer] = useState("");
   const [numericCorrect, setNumericCorrect] = useState<boolean | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -2821,7 +2852,8 @@ function PyqQuestionAttemptPageInner() {
     setIsRunning(true);
     setShowSolution(false);
     setSelectedIndex(null);
-    setMultiSelected([false, false, false, false]);
+    setMultiSelected(new Array(Math.max(currentQuestion?.options.length ?? 4, 1)).fill(false));
+    setMultiResult(null);
     setNumericAnswer("");
     setNumericCorrect(null);
   }, [currentQuestion?.id]);
@@ -2936,6 +2968,17 @@ function PyqQuestionAttemptPageInner() {
                   <span className="inline-flex items-center rounded-full border border-cyan-400/60 bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-200">
                     {currentQuestion.year}
                   </span>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
+                      answerType === "MULTI"
+                        ? "border-amber-400/60 bg-amber-500/10 text-amber-200"
+                        : answerType === "NUMERIC"
+                        ? "border-violet-400/60 bg-violet-500/10 text-violet-200"
+                        : "border-emerald-400/60 bg-emerald-500/10 text-emerald-200"
+                    }`}
+                  >
+                    {answerModeLabel}
+                  </span>
                 </p>
               </div>
 
@@ -2989,9 +3032,30 @@ function PyqQuestionAttemptPageInner() {
                   />
                 </div>
               ) : (
+              <div className="space-y-3">
+                {showSolution && answerType === "MULTI" && multiResult && (
+                  <p
+                    className={`text-xs font-semibold ${
+                      multiResult.status === "correct"
+                        ? "text-emerald-400"
+                        : multiResult.status === "partial"
+                        ? "text-amber-300"
+                        : "text-rose-400"
+                    }`}
+                  >
+                    {multiResult.status === "correct"
+                      ? "Correct"
+                      : multiResult.status === "partial"
+                      ? `Partial marks: +${multiResult.marksAwarded.toFixed(2)} (${multiResult.selectedCorrect}/${multiResult.totalCorrect} correct selected)`
+                      : "Wrong selection (one or more incorrect options selected)"}
+                  </p>
+                )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 {currentQuestion.options.map((opt, idx) => {
-                  const isCorrectIndex = idx === currentQuestion.correctIndex;
+                  const isCorrectIndex =
+                    answerType === "MULTI"
+                      ? multiCorrectSet.has(idx)
+                      : idx === currentQuestion.correctIndex;
                   const isSelected = answerType === "MULTI" ? multiSelected[idx] : selectedIndex === idx;
                   const isChecked = showSolution;
                   let optionClasses =
@@ -3017,8 +3081,6 @@ function PyqQuestionAttemptPageInner() {
                         " border-slate-700 bg-slate-900/80 text-slate-100";
                     }
                   }
-
-                  const isMultiCorrect = answerType === "MULTI" ? multiCorrectSet.has(idx) : false;
                   return (
                     <button
                       key={idx}
@@ -3041,7 +3103,11 @@ function PyqQuestionAttemptPageInner() {
                         className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
                           isChecked
                             ? answerType === "MULTI"
-                              ? isMultiCorrect
+                              ? isCorrectIndex
+                                ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/70"
+                                : isSelected
+                                ? "bg-rose-500/20 text-rose-200 border border-rose-400/70"
+                                : "bg-slate-800 text-slate-300 border border-slate-600"
                               : isCorrectIndex
                               ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/70"
                               : isSelected
@@ -3072,6 +3138,7 @@ function PyqQuestionAttemptPageInner() {
                     </button>
                   );
                 })}
+              </div>
               </div>
               )}
 
@@ -3115,20 +3182,45 @@ function PyqQuestionAttemptPageInner() {
                 type="button"
                 onClick={async () => {
                   let isCorrect = false;
+                  let isPartial = false;
                   if (answerType === "NUMERIC") {
                     isCorrect = numericAnswersEqual(numericAnswer, currentQuestion.correctAnswer);
                     setNumericCorrect(isCorrect);
+                    setMultiResult(null);
                   } else if (answerType === "MULTI") {
                     const chosen = new Set<number>();
                     multiSelected.forEach((v, idx) => {
                       if (v) chosen.add(idx);
                     });
+                    const selectedCorrect = Array.from(chosen).filter((x) => multiCorrectSet.has(x)).length;
+                    const selectedWrong = Array.from(chosen).filter((x) => !multiCorrectSet.has(x)).length;
+                    const totalCorrect = multiCorrectSet.size;
+
                     isCorrect =
-                      chosen.size === multiCorrectSet.size &&
-                      Array.from(chosen).every((x) => multiCorrectSet.has(x));
+                      selectedWrong === 0 &&
+                      selectedCorrect === totalCorrect &&
+                      totalCorrect > 0;
+                    isPartial =
+                      selectedWrong === 0 &&
+                      selectedCorrect > 0 &&
+                      selectedCorrect < totalCorrect;
+
+                    const marksAwarded =
+                      selectedWrong > 0 || totalCorrect === 0
+                        ? 0
+                        : (selectedCorrect / totalCorrect) * 4;
+
+                    setMultiResult({
+                      status: isCorrect ? "correct" : isPartial ? "partial" : "wrong",
+                      selectedCorrect,
+                      totalCorrect,
+                      selectedWrong,
+                      marksAwarded,
+                    });
                   } else {
                     if (selectedIndex === null) return;
                     isCorrect = selectedIndex === currentQuestion.correctIndex;
+                    setMultiResult(null);
                   }
                   if (user) {
                     const chosenIndex =
