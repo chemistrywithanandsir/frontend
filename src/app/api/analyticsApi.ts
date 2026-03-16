@@ -1,4 +1,17 @@
 import { supabase } from "../../lib/supabaseClient";
+import {
+  readClientCache,
+  removeClientCacheByPrefix,
+  writeClientCache,
+} from "../utils/clientCache";
+
+const ANALYTICS_CACHE_PREFIX = "analytics_v1:";
+const SOLVED_CACHE_TTL_MS = 1000 * 60 * 2;
+const WEEKLY_CACHE_TTL_MS = 1000 * 60 * 5;
+
+function clearAnalyticsCache(userId: string) {
+  removeClientCacheByPrefix(`${ANALYTICS_CACHE_PREFIX}${userId}:`);
+}
 
 function todayDateString(): string {
   const now = new Date();
@@ -13,6 +26,7 @@ export async function logQuestionAttempt(params: {
   correctIndex: number | null;
 }): Promise<void> {
   const { userId, questionId, source, chosenIndex, correctIndex } = params;
+  clearAnalyticsCache(userId);
 
   const isCorrect =
     chosenIndex == null || correctIndex == null
@@ -88,6 +102,7 @@ export async function incrementPersonalTestsCompleted(params: {
   userId: string;
   timeMinutes: number;
 }): Promise<void> {
+  clearAnalyticsCache(params.userId);
   const day = todayDateString();
   const minutes = params.timeMinutes ?? 0;
 
@@ -139,6 +154,10 @@ export async function incrementPersonalTestsCompleted(params: {
 }
 
 export async function fetchTodaySolvedCount(userId: string): Promise<number> {
+  const cacheKey = `${ANALYTICS_CACHE_PREFIX}${userId}:todaySolved`;
+  const cached = readClientCache<number>(cacheKey, SOLVED_CACHE_TTL_MS);
+  if (cached !== null) return cached;
+
   const day = todayDateString();
   const { data, error } = await supabase
     .from("user_daily_stats")
@@ -152,9 +171,14 @@ export async function fetchTodaySolvedCount(userId: string): Promise<number> {
     return 0;
   }
 
-  if (!data || data.length === 0) return 0;
+  if (!data || data.length === 0) {
+    writeClientCache(cacheKey, 0);
+    return 0;
+  }
   const row = data[0];
-  return Number(row.questions_correct ?? 0);
+  const value = Number(row.questions_correct ?? 0);
+  writeClientCache(cacheKey, value);
+  return value;
 }
 
 export type WeeklyActivityPoint = {
@@ -166,6 +190,10 @@ export type WeeklyActivityPoint = {
 export async function fetchWeeklyActivity(
   userId: string
 ): Promise<WeeklyActivityPoint[]> {
+  const cacheKey = `${ANALYTICS_CACHE_PREFIX}${userId}:weekly`;
+  const cached = readClientCache<WeeklyActivityPoint[]>(cacheKey, WEEKLY_CACHE_TTL_MS);
+  if (cached) return cached;
+
   // look back ~6 weeks (42 days)
   const now = new Date();
   const past = new Date(now);
@@ -219,6 +247,7 @@ export async function fetchWeeklyActivity(
     });
   });
 
+  writeClientCache(cacheKey, points);
   return points;
 }
 

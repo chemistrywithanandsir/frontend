@@ -13,8 +13,7 @@ import JeeAdvancedLogo from "../../assests/Jee-advanced.jpg";
 import CbseLogo from "../../assests/CBSE.svg";
 import { useRazorpayPayment } from "../hooks/useRazorpayPayment";
 import { useMyBundles } from "../hooks/useMyBundles";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+import { fetchPublicBundles, getCachedPublicBundles } from "../api/notesApi";
 
 function getExamLogo(examId: string) {
   switch (examId) {
@@ -270,8 +269,15 @@ export function NotesChemistryPage() {
 
   const exam = MOCK_EXAMS.find((e) => e.id === examId);
 
-  const [bundlesForExam, setBundlesForExam] = useState<typeof MOCK_LATEST_BUNDLES>([]);
-  const [loading, setLoading] = useState(false);
+  const cachedBundles = useMemo(
+    () => (exam ? getCachedPublicBundles(exam.id) : null),
+    [exam]
+  );
+
+  const [bundlesForExam, setBundlesForExam] = useState<typeof MOCK_LATEST_BUNDLES>(
+    (cachedBundles as any) ?? []
+  );
+  const [loading, setLoading] = useState(!cachedBundles);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -280,28 +286,8 @@ export function NotesChemistryPage() {
       setLoading(true);
       setError(null);
       try {
-        // Ask backend directly for bundles of this exam (jee-main / neet / cbse, etc.)
-        const res = await fetch(
-          `${API_BASE}/notes/bundles?exam_code=${encodeURIComponent(
-            exam.id
-          )}`
-        );
-        const json = await res.json();
-        if (!res.ok) {
-          const detail = Array.isArray(json.detail)
-            ? json.detail.map((d: { msg?: string }) => d.msg).join(" ")
-            : json.detail;
-          throw new Error(detail || res.statusText || "Failed to load bundles.");
-        }
-        const apiBundles = Array.isArray(json.bundles) ? json.bundles : [];
-
-        // API is already normalised by backend (id, title, examCode, priceInRupees, thumbnailUrl, description)
-        // Ensure each bundle has a chapters array so downstream code (chemistryStats) is safe.
-        const mapped = apiBundles.map((b: any) => ({
-          ...b,
-          chapters: Array.isArray(b.chapters) ? b.chapters : [],
-        }));
-        setBundlesForExam(mapped as any);
+        const bundles = await fetchPublicBundles({ examCode: exam.id });
+        setBundlesForExam(bundles as any);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load bundles.");
       } finally {

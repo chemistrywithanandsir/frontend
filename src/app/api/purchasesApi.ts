@@ -1,4 +1,12 @@
 import { supabase } from "../../lib/supabaseClient";
+import {
+  readClientCache,
+  removeClientCacheByPrefix,
+  writeClientCache,
+} from "../utils/clientCache";
+
+const PURCHASES_CACHE_PREFIX = "purchases_v1:";
+const PURCHASES_CACHE_TTL_MS = 1000 * 60 * 10;
 
 export type UserPurchase = {
   id: string;
@@ -18,6 +26,8 @@ export async function savePurchase(params: {
   paymentProvider: "razorpay" | "stripe" | "manual";
   providerPaymentId?: string;
 }): Promise<void> {
+  removeClientCacheByPrefix(`${PURCHASES_CACHE_PREFIX}${params.userId}:`);
+
   const { error } = await supabase.from("user_purchases").insert({
     user_id: params.userId,
     product_type: params.productType,
@@ -35,6 +45,10 @@ export async function savePurchase(params: {
 }
 
 export async function listUserPurchases(userId: string): Promise<UserPurchase[]> {
+  const cacheKey = `${PURCHASES_CACHE_PREFIX}${userId}:list`;
+  const cached = readClientCache<UserPurchase[]>(cacheKey, PURCHASES_CACHE_TTL_MS);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("user_purchases")
     .select("id, product_type, product_id, amount_rupees, currency, created_at")
@@ -46,7 +60,7 @@ export async function listUserPurchases(userId: string): Promise<UserPurchase[]>
     return [];
   }
 
-  return (data ?? []).map((row) => ({
+  const mapped = (data ?? []).map((row) => ({
     id: row.id as string,
     productType: (row.product_type as string) ?? "",
     productId: (row.product_id as string) ?? "",
@@ -54,5 +68,7 @@ export async function listUserPurchases(userId: string): Promise<UserPurchase[]>
     currency: (row.currency as string) ?? "INR",
     createdAt: row.created_at as string,
   }));
+  writeClientCache(cacheKey, mapped);
+  return mapped;
 }
 

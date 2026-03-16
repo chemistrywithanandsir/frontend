@@ -1,4 +1,13 @@
+import {
+  readClientCache,
+  removeClientCacheByPrefix,
+  writeClientCache,
+} from "../utils/clientCache";
+
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+const MY_BUNDLES_CACHE_PREFIX = "my_bundles_v1:";
+const MY_BUNDLES_CACHE_TTL_MS = 1000 * 60 * 10;
 
 /** Ask backend to compute and store page counts for notes in this bundle (for notes with no count yet). */
 export async function ensureBundlePageCounts(bundleId: string): Promise<void> {
@@ -7,6 +16,7 @@ export async function ensureBundlePageCounts(bundleId: string): Promise<void> {
   });
   if (!res.ok) return;
   await res.json();
+  removeClientCacheByPrefix(MY_BUNDLES_CACHE_PREFIX);
 }
 
 export type CreateOrderResponse = {
@@ -69,6 +79,7 @@ export async function verifyRazorpayPayment(
           : "Payment verification failed";
     throw new Error(detail);
   }
+  removeClientCacheByPrefix(MY_BUNDLES_CACHE_PREFIX);
   return json as { ok: boolean; message?: string };
 }
 
@@ -95,6 +106,11 @@ export type MyBundle = {
 };
 
 export async function fetchMyBundles(token: string): Promise<MyBundle[]> {
+  const tokenSuffix = token.slice(-16);
+  const cacheKey = `${MY_BUNDLES_CACHE_PREFIX}${tokenSuffix}`;
+  const cached = readClientCache<MyBundle[]>(cacheKey, MY_BUNDLES_CACHE_TTL_MS);
+  if (cached) return cached;
+
   const res = await fetch(`${API_BASE}/notes/my-bundles`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -106,7 +122,9 @@ export async function fetchMyBundles(token: string): Promise<MyBundle[]> {
         : "Failed to load your bundles";
     throw new Error(detail);
   }
-  return (json.bundles ?? []) as MyBundle[];
+  const bundles = (json.bundles ?? []) as MyBundle[];
+  writeClientCache(cacheKey, bundles);
+  return bundles;
 }
 
 declare global {

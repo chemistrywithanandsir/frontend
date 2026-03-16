@@ -1,5 +1,13 @@
 import { supabase } from "../../lib/supabaseClient";
 import type { PyqQuestion } from "./pyqApi";
+import {
+  readClientCache,
+  removeClientCacheByPrefix,
+  writeClientCache,
+} from "../utils/clientCache";
+
+const PERSONAL_TEST_CACHE_PREFIX = "personal_tests_v1:";
+const PERSONAL_TEST_CACHE_TTL_MS = 1000 * 60 * 10;
 
 export type StoredPersonalTestResult = {
   id: string;
@@ -59,6 +67,10 @@ function mapRowToStoredResult(row: DbPersonalTestRow): StoredPersonalTestResult 
 export async function listPersonalTestsForUser(
   userId: string
 ): Promise<StoredPersonalTestResult[]> {
+  const cacheKey = `${PERSONAL_TEST_CACHE_PREFIX}${userId}:list`;
+  const cached = readClientCache<StoredPersonalTestResult[]>(cacheKey, PERSONAL_TEST_CACHE_TTL_MS);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("user_personal_tests")
     .select(
@@ -72,7 +84,9 @@ export async function listPersonalTestsForUser(
     return [];
   }
 
-  return (data as DbPersonalTestRow[]).map(mapRowToStoredResult);
+  const mapped = (data as DbPersonalTestRow[]).map(mapRowToStoredResult);
+  writeClientCache(cacheKey, mapped);
+  return mapped;
 }
 
 /** Compare two numeric answers (e.g. "101" and "101.00") as numbers. */
@@ -156,6 +170,8 @@ export async function savePersonalTestToDb(
     completed_at: completedAt,
   };
 
+  removeClientCacheByPrefix(`${PERSONAL_TEST_CACHE_PREFIX}${userId}:`);
+
   const { data, error } = await supabase
     .from("user_personal_tests")
     .insert(payload)
@@ -167,6 +183,20 @@ export async function savePersonalTestToDb(
     throw new Error(error?.message ?? "Failed to save test");
   }
 
+  writeClientCache(
+    `${PERSONAL_TEST_CACHE_PREFIX}${userId}:item:${data.id as string}`,
+    {
+      id: data.id as string,
+      examName,
+      completedAt,
+      questions: snapshotQuestions,
+      responses: snapshotResponses,
+      timeMinutes,
+      elapsedSeconds,
+      markedForReview,
+    } as StoredPersonalTestResult
+  );
+
   return data.id as string;
 }
 
@@ -174,6 +204,10 @@ export async function getPersonalTestById(
   userId: string,
   testId: string
 ): Promise<StoredPersonalTestResult | null> {
+  const cacheKey = `${PERSONAL_TEST_CACHE_PREFIX}${userId}:item:${testId}`;
+  const cached = readClientCache<StoredPersonalTestResult | null>(cacheKey, PERSONAL_TEST_CACHE_TTL_MS);
+  if (cached !== null) return cached;
+
   const { data, error } = await supabase
     .from("user_personal_tests")
     .select(
@@ -188,7 +222,12 @@ export async function getPersonalTestById(
     return null;
   }
 
-  if (!data || data.length === 0) return null;
-  return mapRowToStoredResult(data[0] as DbPersonalTestRow);
+  if (!data || data.length === 0) {
+    writeClientCache(cacheKey, null);
+    return null;
+  }
+  const mapped = mapRowToStoredResult(data[0] as DbPersonalTestRow);
+  writeClientCache(cacheKey, mapped);
+  return mapped;
 }
 

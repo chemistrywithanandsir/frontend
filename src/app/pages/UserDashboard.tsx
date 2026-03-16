@@ -27,6 +27,12 @@ import {
   type WeeklyActivityPoint,
 } from "../api/analyticsApi";
 import { useRazorpayPayment } from "../hooks/useRazorpayPayment";
+import {
+  fetchPublicBundleDetail,
+  fetchPublicBundles,
+  getCachedPublicBundleDetail,
+  getCachedPublicBundles,
+} from "../api/notesApi";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -56,10 +62,11 @@ function DashboardHome({
   onBundleClick: (bundleId: string) => void;
 }) {
   const { user } = useAuth();
+  const cachedLatest = useMemo(() => getCachedPublicBundles() ?? null, []);
   const [latestBundles, setLatestBundles] = useState<NoteBundle[]>(
-    MOCK_LATEST_BUNDLES.slice(0, 5)
+    cachedLatest?.slice(0, 5) ?? MOCK_LATEST_BUNDLES.slice(0, 5)
   );
-  const [latestLoading, setLatestLoading] = useState(false);
+  const [latestLoading, setLatestLoading] = useState(!cachedLatest);
   const [latestError, setLatestError] = useState<string | null>(null);
   const [solvedToday, setSolvedToday] = useState(0);
 
@@ -129,21 +136,8 @@ function DashboardHome({
       setLatestLoading(true);
       setLatestError(null);
       try {
-        const res = await fetch(`${API_BASE}/notes/bundles`);
-        const json = await res.json();
-        const apiBundles = Array.isArray(json.bundles) ? json.bundles : [];
-        const mapped: NoteBundle[] = apiBundles.map((b: any) => ({
-          id: String(b.id),
-          title: String(b.title ?? ""),
-          examCode: String(b.examCode ?? ""),
-          description: String(b.description ?? ""),
-          priceInRupees: Number(b.priceInRupees ?? 0),
-          originalPriceInRupees:
-            b.actualPriceInRupees != null ? Number(b.actualPriceInRupees) : undefined,
-          thumbnailUrl: (b as any).thumbnailUrl ?? undefined,
-          chapters: [],
-        }));
-        setLatestBundles(mapped.slice(0, 5));
+        const bundles = await fetchPublicBundles();
+        setLatestBundles(bundles.slice(0, 5));
       } catch {
         setLatestError("Could not load latest bundles.");
       } finally {
@@ -957,7 +951,9 @@ export function UserDashboardPage() {
 
   // Try to resolve bundle from mock data first; if not found, fetch full detail
   // (including chapters) from the backend.
-  const [bundleFromApi, setBundleFromApi] = useState<NoteBundle | null>(null);
+  const [bundleFromApi, setBundleFromApi] = useState<NoteBundle | null>(
+    bundleId ? getCachedPublicBundleDetail(bundleId) : null
+  );
   const allBundles = MOCK_LATEST_BUNDLES;
   const bundleForDetail: NoteBundle | null = bundleId
     ? allBundles.find((bundle) => bundle.id === bundleId) || bundleFromApi
@@ -975,40 +971,9 @@ export function UserDashboardPage() {
 
     const loadBundle = async () => {
       try {
-      const res = await fetch(
-        `${API_BASE}/notes/bundles/${encodeURIComponent(bundleId)}`
-      );
-        if (!res.ok) {
-          return;
-        }
-        const json = await res.json();
-        const apiBundle: any = json.bundle;
-        if (!apiBundle) return;
-
-        const chapters: Chapter[] = Array.isArray(apiBundle.chapters)
-          ? apiBundle.chapters.map((ch: any) => ({
-              id: String(ch.id),
-              title: String(ch.title ?? ""),
-              chemistryType: ch.chemistryType ?? null,
-              pageCount: Number(ch.pageCount ?? 0),
-              pdfUrl: ch.pdfUrl ?? undefined,
-              thumbnailUrl: ch.thumbnailUrl ?? undefined,
-            }))
-          : [];
-
-        setBundleFromApi({
-          id: String(apiBundle.id),
-          title: String(apiBundle.title ?? ""),
-          examCode: String(apiBundle.examCode ?? ""),
-          description: String(apiBundle.description ?? ""),
-          priceInRupees: Number(apiBundle.priceInRupees ?? 0),
-          originalPriceInRupees:
-            apiBundle.actualPriceInRupees != null
-              ? Number(apiBundle.actualPriceInRupees)
-              : undefined,
-          thumbnailUrl: (apiBundle as any).thumbnailUrl ?? undefined,
-          chapters,
-        });
+        const bundle = await fetchPublicBundleDetail(bundleId);
+        if (!bundle) return;
+        setBundleFromApi(bundle);
       } catch {
         // ignore errors for now; dashboard will fallback to "not found"
       }

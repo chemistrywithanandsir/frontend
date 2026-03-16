@@ -1,4 +1,12 @@
 import { supabase } from "../../lib/supabaseClient";
+import {
+  readClientCache,
+  removeClientCache,
+  writeClientCache,
+} from "../utils/clientCache";
+
+const TASKS_CACHE_PREFIX = "tasks_v1:";
+const TASKS_CACHE_TTL_MS = 1000 * 60 * 10;
 
 export type TodayTask = {
   id: string;
@@ -19,6 +27,10 @@ export async function fetchTodayTasksForUser(
   userId: string,
   day: string
 ): Promise<TodayTask[]> {
+  const cacheKey = `${TASKS_CACHE_PREFIX}${userId}:${day}`;
+  const cached = readClientCache<TodayTask[]>(cacheKey, TASKS_CACHE_TTL_MS);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("user_daily_tasks")
     .select("id, text, done")
@@ -31,11 +43,13 @@ export async function fetchTodayTasksForUser(
     return [];
   }
 
-  return (data ?? []).map((row) => ({
+  const mapped = (data ?? []).map((row) => ({
     id: String(row.id),
     text: String(row.text ?? ""),
     done: Boolean(row.done),
   }));
+  writeClientCache(cacheKey, mapped);
+  return mapped;
 }
 
 export async function saveTodayTasksForUser(
@@ -43,6 +57,9 @@ export async function saveTodayTasksForUser(
   day: string,
   tasks: TodayTask[]
 ): Promise<void> {
+  const cacheKey = `${TASKS_CACHE_PREFIX}${userId}:${day}`;
+  writeClientCache(cacheKey, tasks);
+
   // Simplest: delete then insert for that user/day
   const { error: delErr } = await supabase
     .from("user_daily_tasks")
@@ -56,6 +73,7 @@ export async function saveTodayTasksForUser(
   }
 
   if (tasks.length === 0) {
+    removeClientCache(cacheKey);
     return;
   }
 
@@ -72,6 +90,7 @@ export async function saveTodayTasksForUser(
 
   if (insErr) {
     console.error("saveTodayTasksForUser insert error", insErr);
+    removeClientCache(cacheKey);
   }
 }
 

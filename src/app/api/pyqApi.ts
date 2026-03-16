@@ -34,12 +34,63 @@ export type ExamBank = {
   chapters: ChapterInfo[];
 };
 
+const EXAM_BANK_CACHE_PREFIX = "pyq_exam_bank_v1:";
+const EXAM_BANK_CACHE_TTL_MS = 1000 * 60 * 10;
+
+type ExamBankCacheEntry = {
+  savedAt: number;
+  data: ExamBank;
+};
+
+const examBankMemoryCache = new Map<string, ExamBankCacheEntry>();
+
 const EXAM_CODES: Record<string, ExamInfo> = {
   neet: { id: "neet", name: "NEET", code: "NEET" },
   "jee-main": { id: "jee-main", name: "JEE Main", code: "JEE MAIN" },
   "jee-advanced": { id: "jee-advanced", name: "JEE Advanced", code: "JEE ADVANCED" },
   cbse: { id: "cbse", name: "CBSE", code: "CBSE" },
 };
+
+function readExamBankCache(examCode: string): ExamBank | null {
+  const now = Date.now();
+  const mem = examBankMemoryCache.get(examCode);
+  if (mem && now - mem.savedAt <= EXAM_BANK_CACHE_TTL_MS) {
+    return mem.data;
+  }
+
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(`${EXAM_BANK_CACHE_PREFIX}${examCode}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ExamBankCacheEntry>;
+    if (typeof parsed.savedAt !== "number" || !parsed.data) return null;
+    if (now - parsed.savedAt > EXAM_BANK_CACHE_TTL_MS) return null;
+    const entry: ExamBankCacheEntry = { savedAt: parsed.savedAt, data: parsed.data as ExamBank };
+    examBankMemoryCache.set(examCode, entry);
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeExamBankCache(examCode: string, data: ExamBank) {
+  const entry: ExamBankCacheEntry = { savedAt: Date.now(), data };
+  examBankMemoryCache.set(examCode, entry);
+
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      `${EXAM_BANK_CACHE_PREFIX}${examCode}`,
+      JSON.stringify(entry)
+    );
+  } catch {
+    // ignore cache write failures
+  }
+}
+
+export function getCachedExamBank(examCode: string): ExamBank | null {
+  return readExamBankCache(examCode);
+}
 
 /** Collapse vertical PDF line-breaks so formulas don't render as stacked fragments. */
 function normalizeStemForDisplay(stem: string): string {
@@ -135,7 +186,17 @@ export async function getChaptersForExam(examId: string): Promise<ChapterInfo[]>
 }
 
 /** Load full exam bank: questions for this exam, with paper + chapter. */
-export async function getExamBank(examCode: string): Promise<ExamBank | null> {
+export async function getExamBank(
+  examCode: string,
+  options?: { forceRefresh?: boolean }
+): Promise<ExamBank | null> {
+  const forceRefresh = options?.forceRefresh === true;
+
+  if (!forceRefresh) {
+    const cached = readExamBankCache(examCode);
+    if (cached) return cached;
+  }
+
   const examInfo = EXAM_CODES[examCode];
   if (!examInfo) return null;
 
@@ -156,7 +217,9 @@ export async function getExamBank(examCode: string): Promise<ExamBank | null> {
 
   const paperIds = (papersRes.data ?? []).map((p) => p.id).filter(Boolean);
   if (paperIds.length === 0) {
-    return { exam: examInfo, questions: [], chapters };
+    const emptyBank = { exam: examInfo, questions: [], chapters };
+    writeExamBankCache(examCode, emptyBank);
+    return emptyBank;
   }
 
   const { data: questionRows, error } = await supabase
@@ -169,11 +232,14 @@ export async function getExamBank(examCode: string): Promise<ExamBank | null> {
     .in("paper_id", paperIds)
     .order("question_number", { ascending: true });
 
-  if (error) return { exam: examInfo, questions: [], chapters };
+  if (error) {
+    return { exam: examInfo, questions: [], chapters };
+  }
 
   const questions: PyqQuestion[] = (questionRows ?? []).map((r) => mapRowToPyqQuestion(r as Parameters<typeof mapRowToPyqQuestion>[0]));
-
-  return { exam: examInfo, questions, chapters };
+  const bank = { exam: examInfo, questions, chapters };
+  writeExamBankCache(examCode, bank);
+  return bank;
 }
 
 /** Get unique chapter names for selected exams (for personal test chapter list). */

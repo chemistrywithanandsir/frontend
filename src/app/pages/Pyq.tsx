@@ -19,6 +19,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { DashboardMiniSidebar } from "../components/DashboardMiniSidebar";
+import { ChemText } from "../components/ChemText";
 import {
   listPersonalTestsForUser,
   savePersonalTestToDb,
@@ -28,6 +29,7 @@ import {
 } from "../api/personalTestApi";
 import {
   getExamBank,
+  getCachedExamBank,
   getChaptersFromExams,
   sampleQuestions as sampleQuestionsApi,
   type PyqQuestion,
@@ -213,19 +215,23 @@ function setStoredAttemptStatus(questionId: string, status: AttemptStatus) {
 
 // Load exam bank from Supabase (exams, chapters, questions)
 function useExamBank(examId: string | undefined) {
-  const location = useLocation();
-  const [bank, setBank] = useState<ExamBank | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = examId ? getCachedExamBank(examId) : null;
+  const [bank, setBank] = useState<ExamBank | null>(cachedInitial);
+  const [loading, setLoading] = useState<boolean>(Boolean(examId && !cachedInitial));
   const [error, setError] = useState<string | null>(null);
   const inFlightRef = useRef(false);
 
-  const fetchBank = useCallback(() => {
+  const fetchBank = useCallback((forceRefresh = false, silent = false) => {
     if (!examId) return;
     if (inFlightRef.current) return;
     inFlightRef.current = true;
-    setLoading(true);
+
+    const hasCached = Boolean(getCachedExamBank(examId));
+    if (!silent && (forceRefresh || !hasCached)) {
+      setLoading(true);
+    }
     setError(null);
-    getExamBank(examId)
+    getExamBank(examId, { forceRefresh })
       .then((data) => {
         // If there is no data yet for this exam (e.g. CBSE not set up),
         // treat it as an empty bank instead of an error so the UI can still render.
@@ -254,32 +260,25 @@ function useExamBank(examId: string | undefined) {
       setError(null);
       return;
     }
-    fetchBank();
-  }, [examId]);
-
-  // Refetch when user returns to the tab/window so clearing DB rows shows fresh data
-  useEffect(() => {
-    if (!examId) return;
-    const onFocus = () => fetchBank();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    const cached = getCachedExamBank(examId);
+    if (cached) {
+      setBank(cached);
+      setLoading(false);
+      fetchBank(true, true);
+      return;
+    }
+    fetchBank(false);
   }, [examId, fetchBank]);
 
   // Refetch when a PYQ upload completes (e.g. from Admin) so list updates without leaving the tab
   useEffect(() => {
     if (!examId) return;
-    const onPyqUploaded = () => fetchBank();
+    const onPyqUploaded = () => fetchBank(true);
     window.addEventListener("pyq-uploaded", onPyqUploaded);
     return () => window.removeEventListener("pyq-uploaded", onPyqUploaded);
   }, [examId, fetchBank]);
 
-  // Refetch when user navigates to any PYQ page (e.g. after clearing DB or uploading from Admin)
-  useEffect(() => {
-    if (!examId) return;
-    if (location.pathname.startsWith("/dashboard/pyq")) fetchBank();
-  }, [location.pathname, examId, fetchBank]);
-
-  return { bank, loading, error, refetch: fetchBank };
+  return { bank, loading, error, refetch: () => fetchBank(true) };
 }
 
 // PAGE 1: Select Exam
@@ -1151,9 +1150,27 @@ export function PyqPersonalTestAttemptPage() {
               <p className="text-sm text-slate-400 mb-2">
                 {currentQuestion.chapter} · {currentQuestion.chemistryType}
               </p>
-              <p className="text-lg text-slate-100 leading-relaxed mb-6">
-                {currentQuestion.stem}
-              </p>
+              {currentQuestion.stem?.trim() ? (
+                <p className="text-lg text-slate-100 leading-relaxed mb-6">
+                  <ChemText text={currentQuestion.stem} />
+                </p>
+              ) : null}
+
+              {!currentQuestion.stem?.trim() && currentQuestion.questionImageUrls?.length ? (
+                <div className="mb-6 flex flex-col gap-2">
+                  {currentQuestion.questionImageUrls.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`Question figure ${i + 1}`}
+                      className="max-w-full max-h-80 object-contain rounded-lg border border-slate-700 bg-slate-950"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : null}
 
               {isNumericQuestion ? (
                 <div className="space-y-2">
@@ -1196,7 +1213,9 @@ export function PyqPersonalTestAttemptPage() {
                       >
                         {String.fromCharCode(65 + idx)}
                       </span>
-                      <span className="text-slate-100">{opt && opt.trim() ? opt : "—"}</span>
+                      <span className="text-slate-100">
+                        {opt && opt.trim() ? <ChemText text={opt} /> : "—"}
+                      </span>
                     </button>
                   );
                 })}
@@ -1543,9 +1562,11 @@ export function PyqPersonalTestReviewPage() {
                     <p className="text-sm text-slate-400 mb-2">
                       {currentQ.chapter} · {currentQ.chemistryType}
                     </p>
-                    <p className="text-lg text-slate-100 leading-relaxed mb-6">
-                      {currentQ.stem}
-                    </p>
+                    {currentQ.stem?.trim() ? (
+                      <p className="text-lg text-slate-100 leading-relaxed mb-6">
+                        <ChemText text={currentQ.stem} />
+                      </p>
+                    ) : null}
 
                     {currentQ.answerType === "NUMERIC" ? (
                       <div className="space-y-3 mb-6">
@@ -1589,7 +1610,9 @@ export function PyqPersonalTestReviewPage() {
                             >
                               {String.fromCharCode(65 + idx)}
                             </span>
-                            <span className="text-slate-100">{opt && opt.trim() ? opt : "—"}</span>
+                            <span className="text-slate-100">
+                              {opt && opt.trim() ? <ChemText text={opt} /> : "—"}
+                            </span>
                             {isCorrectOpt && (
                               <span className="ml-auto text-xs font-medium text-emerald-300">
                                 Correct answer
@@ -1612,7 +1635,7 @@ export function PyqPersonalTestReviewPage() {
                       </p>
                       {currentQ.solution && (
                         <p className="text-sm text-slate-200 leading-relaxed">
-                          {currentQ.solution}
+                          <ChemText text={currentQ.solution} />
                         </p>
                       )}
                       {(currentQ as PyqQuestion).solutionImageUrls?.length ? (
@@ -2654,6 +2677,8 @@ export function PyqQuestionPage() {
                   const status = q.attemptStatus ?? "unattempted";
                   const isCorrect = status === "correct";
                   const isWrong = status === "wrong";
+                  const hasStem = Boolean(q.stem?.trim());
+                  const firstQuestionImage = q.questionImageUrls?.[0];
                   return (
                     <button
                       key={q.id}
@@ -2690,9 +2715,24 @@ export function PyqQuestionPage() {
                         </div>
                         <div className="flex-1 flex items-center justify-between gap-3">
                           <div className="space-y-1">
-                            <p className="text-slate-100 text-[13px] md:text-sm leading-snug line-clamp-2">
-                              {q.stem}
-                            </p>
+                            {hasStem ? (
+                              <p className="text-slate-100 text-[13px] md:text-sm leading-snug line-clamp-2">
+                                <ChemText text={q.stem} />
+                              </p>
+                            ) : firstQuestionImage ? (
+                              <div className="w-full max-w-3xl h-24 md:h-28 rounded-xl border border-slate-700/90 bg-slate-950/90 overflow-hidden">
+                                <img
+                                  src={firstQuestionImage}
+                                  alt={`Question ${idx + 1} image`}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <p className="text-slate-400 text-[13px] md:text-sm">(No text)</p>
+                            )}
                             <div className="text-[11px] text-slate-400">
                               <span className="font-medium text-slate-100">
                                 {q.year}
@@ -2984,7 +3024,7 @@ function PyqQuestionAttemptPageInner() {
 
               <div>
                 <p className="text-lg md:text-xl text-slate-100 whitespace-pre-line leading-relaxed">
-                  {currentQuestion.stem}
+                  <ChemText text={currentQuestion.stem} />
                 </p>
               </div>
 
@@ -3132,7 +3172,11 @@ function PyqQuestionAttemptPageInner() {
                           />
                         ) : null}
                         <span className="text-slate-100">
-                          {opt && opt.trim() ? opt : currentQuestion.optionImageUrls?.[idx] ? "" : "—"}
+                          {opt && opt.trim()
+                            ? <ChemText text={opt} />
+                            : currentQuestion.optionImageUrls?.[idx]
+                            ? ""
+                            : "—"}
                         </span>
                       </div>
                     </button>
@@ -3148,7 +3192,9 @@ function PyqQuestionAttemptPageInner() {
                     Solution
                   </p>
                   {currentQuestion.solution && (
-                    <p className="text-slate-200">{currentQuestion.solution}</p>
+                    <p className="text-slate-200">
+                      <ChemText text={currentQuestion.solution} />
+                    </p>
                   )}
                   {currentQuestion.solutionImageUrls?.length ? (
                     <div className="flex flex-col gap-2">

@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ChemText } from "../components/ChemText";
 import { supabase } from "../../lib/supabaseClient";
 import {
   Home,
@@ -27,6 +28,61 @@ import {
 } from "../utils/apiWeightage";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const ADMIN_VERIFY_CACHE_KEY = "admin_anand_verified_v1";
+const ADMIN_VERIFY_TTL_MS = 1000 * 60 * 60 * 12;
+const PYQ_DRAFT_KEY = "admin_pyq_draft_v1";
+
+type AdminVerifyCache = {
+  email: string;
+  verifiedAt: number;
+};
+
+function getFreshAdminVerifyCache(email: string | null): AdminVerifyCache | null {
+  if (typeof window === "undefined" || !email) return null;
+  try {
+    const raw = window.localStorage.getItem(ADMIN_VERIFY_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<AdminVerifyCache>;
+    if (!parsed.email || typeof parsed.verifiedAt !== "number") return null;
+    if (parsed.email !== email) return null;
+    if (Date.now() - parsed.verifiedAt > ADMIN_VERIFY_TTL_MS) return null;
+    return { email: parsed.email, verifiedAt: parsed.verifiedAt };
+  } catch {
+    return null;
+  }
+}
+
+function setAdminVerifyCache(email: string | null) {
+  if (typeof window === "undefined" || !email) return;
+  const value: AdminVerifyCache = { email, verifiedAt: Date.now() };
+  window.localStorage.setItem(ADMIN_VERIFY_CACHE_KEY, JSON.stringify(value));
+}
+
+function clearAdminVerifyCache() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(ADMIN_VERIFY_CACHE_KEY);
+}
+
+type PyqDraftState = {
+  pyqAddMode: "pdf" | "manual";
+  pyqExamMode: "standard" | "cbse";
+  cbseSubject: "" | "Physics" | "Chemistry" | "Maths";
+  pyqExamType: string;
+  pyqChemType: "Organic" | "Inorganic" | "Physical" | "";
+  pyqYear: string;
+  pyqChapterName: string;
+  manualQuestionType: "MCQ" | "NUMERIC" | "MULTI";
+  manualYear: string;
+  manualQuestion: string;
+  manualOpt1: string;
+  manualOpt2: string;
+  manualOpt3: string;
+  manualOpt4: string;
+  manualCorrectIndex: number;
+  manualNumericAnswer: string;
+  manualMultiCorrect: boolean[];
+  manualSolution: string;
+};
 
 type AdminStatus =
   | "checking_auth"
@@ -82,6 +138,261 @@ function ExamTypeInput({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function applyChemTag(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void,
+  tag: "sup" | "sub"
+) {
+  const open = `<${tag}>`;
+  const close = `</${tag}>`;
+  const fallbackPos = value.length;
+  const start = element?.selectionStart ?? fallbackPos;
+  const end = element?.selectionEnd ?? fallbackPos;
+  const selected = value.slice(start, end);
+  const wrapped = `${open}${selected}${close}`;
+  const next = value.slice(0, start) + wrapped + value.slice(end);
+  onChange(next);
+
+  requestAnimationFrame(() => {
+    if (!element) return;
+    const cursorStart = start + open.length;
+    const cursorEnd = cursorStart + selected.length;
+    element.focus();
+    element.setSelectionRange(cursorStart, cursorEnd || cursorStart);
+  });
+}
+
+function applyFractionTag(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void
+) {
+  const open = "<frac>";
+  const close = "</frac>";
+  const fallbackPos = value.length;
+  const start = element?.selectionStart ?? fallbackPos;
+  const end = element?.selectionEnd ?? fallbackPos;
+  const selected = value.slice(start, end);
+  const inner = selected && selected.includes("/") ? selected : "a/b";
+  const wrapped = `${open}${inner}${close}`;
+  const next = value.slice(0, start) + wrapped + value.slice(end);
+  onChange(next);
+
+  requestAnimationFrame(() => {
+    if (!element) return;
+    const slashIndex = inner.indexOf("/");
+    const cursorStart = start + open.length;
+    const cursorEnd =
+      slashIndex > 0
+        ? cursorStart + slashIndex
+        : cursorStart + inner.length;
+    element.focus();
+    element.setSelectionRange(cursorStart, cursorEnd);
+  });
+}
+
+function insertAtCursor(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void,
+  token: string
+) {
+  const fallbackPos = value.length;
+  const start = element?.selectionStart ?? fallbackPos;
+  const end = element?.selectionEnd ?? fallbackPos;
+  const next = value.slice(0, start) + token + value.slice(end);
+  onChange(next);
+
+  requestAnimationFrame(() => {
+    if (!element) return;
+    const pos = start + token.length;
+    element.focus();
+    element.setSelectionRange(pos, pos);
+  });
+}
+
+const SYMBOL_GROUPS: Array<{ label: string; items: string[] }> = [
+  {
+    label: "Fractions",
+    items: ["½", "⅓", "⅔", "¼", "¾", "⅛", "⅜", "⅝", "⅞", "(a)/(b)"],
+  },
+  {
+    label: "Arrows",
+    items: ["→", "←", "↔", "↑", "↓", "⇌", "⇄", "⇒", "⇐", "⇔", "↦", "⟶", "⟵", "↗", "↘"],
+  },
+  {
+    label: "Operators",
+    items: ["±", "∓", "×", "÷", "·", "√", "∛", "∑", "∏", "∫", "∞", "∂", "∆", "∇", "°"],
+  },
+  {
+    label: "Relations",
+    items: ["=", "≠", "≈", "≡", "<", ">", "≤", "≥", "∝", "∈", "∉", "⊂", "⊆", "⊄"],
+  },
+  {
+    label: "Greek",
+    items: ["α", "β", "γ", "δ", "Δ", "θ", "λ", "μ", "π", "σ", "Σ", "ω", "Ω", "φ", "χ"],
+  },
+  {
+    label: "Chem/Math",
+    items: ["↠", "⇀", "⇁", "⊥", "∥", "∠", "∴", "∵", "⊕", "⊖", "⊗", "⊘", "⊙", "∘", "→hν"],
+  },
+];
+
+const REACTION_ARROWS: Array<{ label: string; token: string }> = [
+  { label: "A ⟶ B", token: " ⟶ " },
+  { label: "A ⇌ B", token: " ⇌ " },
+  { label: "A ⟷ B", token: " ⟷ " },
+  { label: "A ⟹ B", token: " ⟹ " },
+  { label: "A ⟵ B", token: " ⟵ " },
+];
+
+function ChemTagButtons(props: {
+  value: string;
+  onChange: (next: string) => void;
+  targetRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
+}) {
+  const { value, onChange, targetRef } = props;
+  const [showSymbols, setShowSymbols] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] text-slate-500">Insert:</span>
+        <button
+          type="button"
+          onClick={() => applyChemTag(targetRef.current, value, onChange, "sup")}
+          className="rounded-md border border-slate-700 bg-slate-900/70 px-2 py-0.5 text-[11px] text-slate-200 hover:border-cyan-500/70 hover:text-cyan-200"
+        >
+          x²
+        </button>
+        <button
+          type="button"
+          onClick={() => applyChemTag(targetRef.current, value, onChange, "sub")}
+          className="rounded-md border border-slate-700 bg-slate-900/70 px-2 py-0.5 text-[11px] text-slate-200 hover:border-cyan-500/70 hover:text-cyan-200"
+        >
+          x₂
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFractionTag(targetRef.current, value, onChange)}
+          className="rounded-md border border-slate-700 bg-slate-900/70 px-2 py-0.5 text-[11px] text-slate-200 hover:border-cyan-500/70 hover:text-cyan-200"
+        >
+          frac
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowSymbols((prev) => !prev)}
+          className="rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-200 hover:bg-cyan-500/20"
+        >
+          {showSymbols ? "Hide symbols" : "More symbols"}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] text-slate-500">Reaction:</span>
+        {REACTION_ARROWS.map((arrow) => (
+          <button
+            key={arrow.label}
+            type="button"
+            onClick={() => insertAtCursor(targetRef.current, value, onChange, arrow.token)}
+            className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2.5 py-1 text-sm leading-none text-emerald-200 hover:bg-emerald-500/20"
+            title={`Insert ${arrow.token.trim()}`}
+          >
+            {arrow.label}
+          </button>
+        ))}
+      </div>
+
+      {showSymbols ? (
+        <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-2.5 space-y-2">
+          {SYMBOL_GROUPS.map((group) => (
+            <div key={group.label} className="space-y-1">
+              <p className="text-[10px] uppercase tracking-wide text-slate-400">{group.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.items.map((symbol) => (
+                  <button
+                    key={`${group.label}-${symbol}`}
+                    type="button"
+                    onClick={() => insertAtCursor(targetRef.current, value, onChange, symbol)}
+                    className="rounded-md border border-slate-700 bg-slate-900/70 px-2 py-1 text-xs text-slate-100 hover:border-cyan-500/70 hover:text-cyan-200"
+                    title={`Insert ${symbol}`}
+                  >
+                    {symbol}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type ChemTextInputProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange"
+> & {
+  value: string;
+  onValueChange: (next: string) => void;
+};
+
+function ChemTextInput({ value, onValueChange, className, ...rest }: ChemTextInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mergedClassName = `w-full ${className ?? ""}`.trim();
+  return (
+    <div className="space-y-1.5">
+      <ChemTagButtons
+        value={value}
+        onChange={onValueChange}
+        targetRef={inputRef}
+      />
+      <input
+        {...rest}
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+        className={mergedClassName}
+      />
+    </div>
+  );
+}
+
+type ChemTextTextareaProps = Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "value" | "onChange"
+> & {
+  value: string;
+  onValueChange: (next: string) => void;
+};
+
+function ChemTextTextarea({
+  value,
+  onValueChange,
+  className,
+  ...rest
+}: ChemTextTextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mergedClassName = `w-full ${className ?? ""}`.trim();
+  return (
+    <div className="space-y-1.5">
+      <ChemTagButtons
+        value={value}
+        onChange={onValueChange}
+        targetRef={textareaRef}
+      />
+      <textarea
+        {...rest}
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+        className={mergedClassName}
+      />
     </div>
   );
 }
@@ -442,6 +753,178 @@ export function AdminAnandPage() {
   const manualOpt3ImageRef = useRef<HTMLInputElement>(null);
   const manualOpt4ImageRef = useRef<HTMLInputElement>(null);
   const manualSolutionImagesRef = useRef<HTMLInputElement>(null);
+  const [manualPastedStemImages, setManualPastedStemImages] = useState<File[]>([]);
+  const [manualPastedSolutionImages, setManualPastedSolutionImages] = useState<File[]>([]);
+  const [manualPastedOptionImages, setManualPastedOptionImages] = useState<(File | null)[]>([
+    null,
+    null,
+    null,
+    null,
+  ]);
+
+  const readClipboardImageFiles = async (): Promise<File[]> => {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.read) {
+      throw new Error("Clipboard image paste is not supported in this browser.");
+    }
+    const items = await navigator.clipboard.read();
+    const files: File[] = [];
+    for (const item of items) {
+      for (const type of item.types) {
+        if (!type.startsWith("image/")) continue;
+        const blob = await item.getType(type);
+        const ext = type.split("/")[1] || "png";
+        files.push(new File([blob], `clipboard-${Date.now()}.${ext}`, { type }));
+      }
+    }
+    return files;
+  };
+
+  const pasteClipboardImagesToTarget = async (
+    target: "stem" | "solution" | "option",
+    optionIndex?: number
+  ) => {
+    try {
+      const files = await readClipboardImageFiles();
+      if (!files.length) {
+        setPyqMessage({ type: "error", text: "No image found in clipboard." });
+        return;
+      }
+
+      if (target === "stem") {
+        setManualPastedStemImages((prev) => [...prev, ...files]);
+      } else if (target === "solution") {
+        setManualPastedSolutionImages((prev) => [...prev, ...files]);
+      } else {
+        const idx = typeof optionIndex === "number" ? optionIndex : 0;
+        setManualPastedOptionImages((prev) => {
+          const next = [...prev];
+          next[idx] = files[0] ?? null;
+          return next;
+        });
+      }
+
+      setPyqMessage({
+        type: "success",
+        text:
+          target === "option"
+            ? "Pasted option image from clipboard."
+            : `Pasted ${files.length} image${files.length > 1 ? "s" : ""} from clipboard.`,
+      });
+    } catch (err) {
+      setPyqMessage({
+        type: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Could not read image from clipboard.",
+      });
+    }
+  };
+
+  // Restore draft inputs for PYQ add/edit flow (files cannot be restored by browser security rules)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.sessionStorage.getItem(PYQ_DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<PyqDraftState>;
+
+      if (draft.pyqAddMode === "pdf" || draft.pyqAddMode === "manual") {
+        setPyqAddMode(draft.pyqAddMode);
+      }
+      if (draft.pyqExamMode === "standard" || draft.pyqExamMode === "cbse") {
+        setPyqExamMode(draft.pyqExamMode);
+      }
+      if (
+        draft.cbseSubject === "" ||
+        draft.cbseSubject === "Physics" ||
+        draft.cbseSubject === "Chemistry" ||
+        draft.cbseSubject === "Maths"
+      ) {
+        setCbseSubject(draft.cbseSubject);
+      }
+      if (typeof draft.pyqExamType === "string") setPyqExamType(draft.pyqExamType);
+      if (
+        draft.pyqChemType === "" ||
+        draft.pyqChemType === "Organic" ||
+        draft.pyqChemType === "Inorganic" ||
+        draft.pyqChemType === "Physical"
+      ) {
+        setPyqChemType(draft.pyqChemType);
+      }
+      if (typeof draft.pyqYear === "string") setPyqYear(draft.pyqYear);
+      if (typeof draft.pyqChapterName === "string") setPyqChapterName(draft.pyqChapterName);
+      if (
+        draft.manualQuestionType === "MCQ" ||
+        draft.manualQuestionType === "NUMERIC" ||
+        draft.manualQuestionType === "MULTI"
+      ) {
+        setManualQuestionType(draft.manualQuestionType);
+      }
+      if (typeof draft.manualYear === "string") setManualYear(draft.manualYear);
+      if (typeof draft.manualQuestion === "string") setManualQuestion(draft.manualQuestion);
+      if (typeof draft.manualOpt1 === "string") setManualOpt1(draft.manualOpt1);
+      if (typeof draft.manualOpt2 === "string") setManualOpt2(draft.manualOpt2);
+      if (typeof draft.manualOpt3 === "string") setManualOpt3(draft.manualOpt3);
+      if (typeof draft.manualOpt4 === "string") setManualOpt4(draft.manualOpt4);
+      if (typeof draft.manualCorrectIndex === "number") setManualCorrectIndex(Math.max(0, Math.min(3, draft.manualCorrectIndex)));
+      if (typeof draft.manualNumericAnswer === "string") setManualNumericAnswer(draft.manualNumericAnswer);
+      if (Array.isArray(draft.manualMultiCorrect)) {
+        const next = [false, false, false, false];
+        for (let i = 0; i < 4; i += 1) {
+          next[i] = Boolean(draft.manualMultiCorrect[i]);
+        }
+        setManualMultiCorrect(next);
+      }
+      if (typeof draft.manualSolution === "string") setManualSolution(draft.manualSolution);
+    } catch {
+      // ignore invalid draft payload
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const draft: PyqDraftState = {
+      pyqAddMode,
+      pyqExamMode,
+      cbseSubject,
+      pyqExamType,
+      pyqChemType,
+      pyqYear,
+      pyqChapterName,
+      manualQuestionType,
+      manualYear,
+      manualQuestion,
+      manualOpt1,
+      manualOpt2,
+      manualOpt3,
+      manualOpt4,
+      manualCorrectIndex,
+      manualNumericAnswer,
+      manualMultiCorrect,
+      manualSolution,
+    };
+    window.sessionStorage.setItem(PYQ_DRAFT_KEY, JSON.stringify(draft));
+  }, [
+    pyqAddMode,
+    pyqExamMode,
+    cbseSubject,
+    pyqExamType,
+    pyqChemType,
+    pyqYear,
+    pyqChapterName,
+    manualQuestionType,
+    manualYear,
+    manualQuestion,
+    manualOpt1,
+    manualOpt2,
+    manualOpt3,
+    manualOpt4,
+    manualCorrectIndex,
+    manualNumericAnswer,
+    manualMultiCorrect,
+    manualSolution,
+  ]);
 
   // Scroll targets for main admin sections
   const pyqSectionRef = useRef<HTMLDivElement | null>(null);
@@ -721,13 +1204,19 @@ export function AdminAnandPage() {
     if (loading) return;
 
     if (!user) {
+      clearAdminVerifyCache();
       setStatus("redirecting_to_google");
       void signInWithGoogle("/admin/anand");
       return;
     }
 
+    const userEmail = user.email ?? null;
+    setEmail(userEmail);
+    if (getFreshAdminVerifyCache(userEmail)) {
+      setStatus("admin");
+      return;
+    }
     setStatus("calling_backend");
-    setEmail(user.email ?? null);
   }, [user, loading, signInWithGoogle]);
 
   // 2) When we have a user, call backend /admin/anand
@@ -751,16 +1240,21 @@ export function AdminAnandPage() {
 
         if (res.ok) {
           const json = await res.json();
-          setEmail(json.email ?? email);
+          const verifiedEmail = json.email ?? email;
+          setEmail(verifiedEmail);
+          setAdminVerifyCache(verifiedEmail);
           setStatus("admin");
         } else if (res.status === 403) {
+          clearAdminVerifyCache();
           setStatus("not_admin");
         } else {
           console.error("Unexpected response from /admin/anand:", res.status);
+          clearAdminVerifyCache();
           setStatus("not_admin");
         }
       } catch (err) {
         console.error("Error calling /admin/anand:", err);
+        clearAdminVerifyCache();
         setStatus("not_admin");
       }
     };
@@ -895,8 +1389,8 @@ export function AdminAnandPage() {
   if (adminSection === "homepage") {
     const examCards = [
       { id: "neet", label: "NEET", path: "/neet" },
-      { id: "jee-main", label: "JEE(mains)", path: "/jee-main" },
-      { id: "jee-advanced", label: "JEE(advanced)", path: "/jee-advanced" },
+      { id: "jee-main", label: "JEE(Mains)", path: "/jee-main" },
+      { id: "jee-advanced", label: "JEE(Advanced)", path: "/jee-advanced" },
       { id: "cbse", label: "CBSE (Chemistry)", path: "/cbse" },
     ];
     return (
@@ -1756,6 +2250,8 @@ export function AdminAnandPage() {
                     if (q.exam_code) metaParts.push(String(q.exam_code));
                     if (q.chapter_name) metaParts.push(String(q.chapter_name));
                     const meta = metaParts.join(" · ");
+                    const hasText = Boolean((q.question_text || "").trim());
+                    const firstStemImage = (q.question_image_urls || [])[0];
 
                     return (
                       <div
@@ -1768,9 +2264,27 @@ export function AdminAnandPage() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-slate-100 text-[13px] md:text-sm leading-snug line-clamp-2">
-                              {q.question_text || "(no text)"}
-                            </p>
+                            {hasText ? (
+                              <p className="text-slate-100 text-[13px] md:text-sm leading-snug line-clamp-2">
+                                <ChemText text={q.question_text} />
+                              </p>
+                            ) : firstStemImage ? (
+                              <a
+                                href={firstStemImage}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-block"
+                              >
+                                <img
+                                  src={firstStemImage}
+                                  alt={`Question ${num} image`}
+                                  className="h-24 w-full max-w-sm rounded-lg border border-slate-700 bg-white p-1 object-contain hover:border-cyan-400/70"
+                                  loading="lazy"
+                                />
+                              </a>
+                            ) : (
+                              <p className="text-slate-400 text-[13px] md:text-sm">(no text)</p>
+                            )}
                             {meta && (
                               <p className="mt-1 text-[10px] text-slate-500 truncate">
                                 {meta}
@@ -1901,13 +2415,13 @@ export function AdminAnandPage() {
                     <span className="font-semibold uppercase tracking-wide">
                       Full question
                     </span>
-                    <textarea
+                    <ChemTextTextarea
                       className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       value={pyqEditingQuestion.question_text}
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setPyqEditingQuestion((prev) =>
                           prev
-                            ? { ...prev, question_text: e.target.value }
+                            ? { ...prev, question_text: value }
                             : prev
                         )
                       }
@@ -2107,17 +2621,17 @@ export function AdminAnandPage() {
                               </span>
                             </label>
                           </div>
-                          <textarea
+                          <ChemTextTextarea
                             className="min-h-[48px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             value={opt || ""}
-                            onChange={(e) =>
+                            onValueChange={(value) =>
                               setPyqEditingQuestion((prev) => {
                                 if (!prev) return prev;
                                 const nextOpts = [...(prev.options || [])];
                                 while (nextOpts.length < 4) {
                                   nextOpts.push("");
                                 }
-                                nextOpts[i] = e.target.value;
+                                nextOpts[i] = value;
                                 return { ...prev, options: nextOpts };
                               })
                             }
@@ -2146,13 +2660,13 @@ export function AdminAnandPage() {
                     <span className="font-semibold uppercase tracking-wide">
                       Solution (text)
                     </span>
-                    <textarea
+                    <ChemTextTextarea
                       className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       value={pyqEditingQuestion.solution_text || ""}
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setPyqEditingQuestion((prev) =>
                           prev
-                            ? { ...prev, solution_text: e.target.value }
+                            ? { ...prev, solution_text: value }
                             : prev
                         )
                       }
@@ -2641,19 +3155,32 @@ export function AdminAnandPage() {
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                   Question
                 </label>
-                <textarea
+                <ChemTextTextarea
                   value={manualQuestion}
-                  onChange={(e) => setManualQuestion(e.target.value)}
+                  onValueChange={setManualQuestion}
                   rows={4}
                   className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="Type the question statement…"
                 />
+                <p className="text-[11px] text-slate-400">
+                  Select text and click x² / x₂. You can also type tags directly: &lt;sup&gt;...&lt;/sup&gt; and &lt;sub&gt;...&lt;/sub&gt;.
+                </p>
               </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                   Add image(s) in question (optional)
                 </label>
+                <div className="mb-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void pasteClipboardImagesToTarget("stem")}
+                    className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                  >
+                    Paste from clipboard
+                  </button>
+                  <span className="text-[10px] text-slate-500">Copy screenshot, then click paste</span>
+                </div>
                 <input
                   ref={manualStemImagesRef}
                   type="file"
@@ -2661,6 +3188,27 @@ export function AdminAnandPage() {
                   multiple
                   className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                 />
+                {manualPastedStemImages.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {manualPastedStemImages.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="flex items-center justify-between rounded border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+                      >
+                        <span className="truncate pr-2">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setManualPastedStemImages((prev) => prev.filter((_, idx) => idx !== index))
+                          }
+                          className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] text-rose-200"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {manualQuestionType === "NUMERIC" ? null : (
@@ -2670,9 +3218,9 @@ export function AdminAnandPage() {
                     <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                       Option 1 (A) text
                     </label>
-                    <input
+                    <ChemTextInput
                       value={manualOpt1}
-                      onChange={(e) => setManualOpt1(e.target.value)}
+                      onValueChange={setManualOpt1}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       placeholder="Option A text…"
                     />
@@ -2683,6 +3231,20 @@ export function AdminAnandPage() {
                     accept="image/*"
                     className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                   />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void pasteClipboardImagesToTarget("option", 0)}
+                      className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                    >
+                      Paste image
+                    </button>
+                    {manualPastedOptionImages[0] && (
+                      <span className="text-[11px] text-slate-400 truncate">
+                        {manualPastedOptionImages[0]?.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -2690,9 +3252,9 @@ export function AdminAnandPage() {
                     <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                       Option 2 (B) text
                     </label>
-                    <input
+                    <ChemTextInput
                       value={manualOpt2}
-                      onChange={(e) => setManualOpt2(e.target.value)}
+                      onValueChange={setManualOpt2}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       placeholder="Option B text…"
                     />
@@ -2703,6 +3265,20 @@ export function AdminAnandPage() {
                     accept="image/*"
                     className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                   />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void pasteClipboardImagesToTarget("option", 1)}
+                      className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                    >
+                      Paste image
+                    </button>
+                    {manualPastedOptionImages[1] && (
+                      <span className="text-[11px] text-slate-400 truncate">
+                        {manualPastedOptionImages[1]?.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -2710,9 +3286,9 @@ export function AdminAnandPage() {
                     <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                       Option 3 (C) text
                     </label>
-                    <input
+                    <ChemTextInput
                       value={manualOpt3}
-                      onChange={(e) => setManualOpt3(e.target.value)}
+                      onValueChange={setManualOpt3}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       placeholder="Option C text…"
                     />
@@ -2723,6 +3299,20 @@ export function AdminAnandPage() {
                     accept="image/*"
                     className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                   />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void pasteClipboardImagesToTarget("option", 2)}
+                      className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                    >
+                      Paste image
+                    </button>
+                    {manualPastedOptionImages[2] && (
+                      <span className="text-[11px] text-slate-400 truncate">
+                        {manualPastedOptionImages[2]?.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -2730,9 +3320,9 @@ export function AdminAnandPage() {
                     <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                       Option 4 (D) text
                     </label>
-                    <input
+                    <ChemTextInput
                       value={manualOpt4}
-                      onChange={(e) => setManualOpt4(e.target.value)}
+                      onValueChange={setManualOpt4}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       placeholder="Option D text…"
                     />
@@ -2743,6 +3333,20 @@ export function AdminAnandPage() {
                     accept="image/*"
                     className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                   />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void pasteClipboardImagesToTarget("option", 3)}
+                      className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                    >
+                      Paste image
+                    </button>
+                    {manualPastedOptionImages[3] && (
+                      <span className="text-[11px] text-slate-400 truncate">
+                        {manualPastedOptionImages[3]?.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               )}
@@ -2751,9 +3355,9 @@ export function AdminAnandPage() {
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                   Solution (optional)
                 </label>
-                <textarea
+                <ChemTextTextarea
                   value={manualSolution}
-                  onChange={(e) => setManualSolution(e.target.value)}
+                  onValueChange={setManualSolution}
                   rows={3}
                   className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="Solution text…"
@@ -2764,6 +3368,16 @@ export function AdminAnandPage() {
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                   Add image(s) in solution (optional)
                 </label>
+                <div className="mb-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void pasteClipboardImagesToTarget("solution")}
+                    className="rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                  >
+                    Paste from clipboard
+                  </button>
+                  <span className="text-[10px] text-slate-500">Supports multiple screenshots</span>
+                </div>
                 <input
                   ref={manualSolutionImagesRef}
                   type="file"
@@ -2771,6 +3385,27 @@ export function AdminAnandPage() {
                   multiple
                   className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                 />
+                {manualPastedSolutionImages.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {manualPastedSolutionImages.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="flex items-center justify-between rounded border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+                      >
+                        <span className="truncate pr-2">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setManualPastedSolutionImages((prev) => prev.filter((_, idx) => idx !== index))
+                          }
+                          className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] text-rose-200"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
@@ -2835,19 +3470,25 @@ export function AdminAnandPage() {
                     if (stemFiles && stemFiles.length) {
                       Array.from(stemFiles).forEach((f) => formData.append("question_images", f));
                     }
+                    manualPastedStemImages.forEach((f) => formData.append("question_images", f));
                     const solFiles = manualSolutionImagesRef.current?.files;
                     if (solFiles && solFiles.length) {
                       Array.from(solFiles).forEach((f) => formData.append("solution_images", f));
                     }
+                    manualPastedSolutionImages.forEach((f) => formData.append("solution_images", f));
                     if (manualQuestionType !== "NUMERIC") {
                       const o1 = manualOpt1ImageRef.current?.files?.[0];
                       const o2 = manualOpt2ImageRef.current?.files?.[0];
                       const o3 = manualOpt3ImageRef.current?.files?.[0];
                       const o4 = manualOpt4ImageRef.current?.files?.[0];
-                      if (o1) formData.append("option1_image", o1);
-                      if (o2) formData.append("option2_image", o2);
-                      if (o3) formData.append("option3_image", o3);
-                      if (o4) formData.append("option4_image", o4);
+                      const p1 = manualPastedOptionImages[0];
+                      const p2 = manualPastedOptionImages[1];
+                      const p3 = manualPastedOptionImages[2];
+                      const p4 = manualPastedOptionImages[3];
+                      if (o1 || p1) formData.append("option1_image", o1 || p1!);
+                      if (o2 || p2) formData.append("option2_image", o2 || p2!);
+                      if (o3 || p3) formData.append("option3_image", o3 || p3!);
+                      if (o4 || p4) formData.append("option4_image", o4 || p4!);
                     }
 
                     const res = await fetch(`${API_BASE}/admin/pyq/manual`, {
@@ -2881,6 +3522,9 @@ export function AdminAnandPage() {
                     if (manualOpt2ImageRef.current) manualOpt2ImageRef.current.value = "";
                     if (manualOpt3ImageRef.current) manualOpt3ImageRef.current.value = "";
                     if (manualOpt4ImageRef.current) manualOpt4ImageRef.current.value = "";
+                    setManualPastedStemImages([]);
+                    setManualPastedSolutionImages([]);
+                    setManualPastedOptionImages([null, null, null, null]);
                   } catch (err) {
                     setPyqMessage({ type: "error", text: err instanceof Error ? err.message : "Save failed." });
                   } finally {
@@ -3511,6 +4155,8 @@ export function AdminAnandPage() {
                     if (q.exam_code) metaParts.push(String(q.exam_code));
                     if (q.chapter_name) metaParts.push(String(q.chapter_name));
                     const meta = metaParts.join(" · ");
+                    const hasText = Boolean((q.question_text || "").trim());
+                    const firstStemImage = (q.question_image_urls || [])[0];
 
                     return (
                       <div
@@ -3523,9 +4169,27 @@ export function AdminAnandPage() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-slate-100 text-[13px] md:text-sm leading-snug line-clamp-2">
-                              {q.question_text || "(no text)"}
-                            </p>
+                            {hasText ? (
+                              <p className="text-slate-100 text-[13px] md:text-sm leading-snug line-clamp-2">
+                                <ChemText text={q.question_text} />
+                              </p>
+                            ) : firstStemImage ? (
+                              <a
+                                href={firstStemImage}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-block"
+                              >
+                                <img
+                                  src={firstStemImage}
+                                  alt={`Question ${num} image`}
+                                  className="h-24 w-full max-w-sm rounded-lg border border-slate-700 bg-white p-1 object-contain hover:border-cyan-400/70"
+                                  loading="lazy"
+                                />
+                              </a>
+                            ) : (
+                              <p className="text-slate-400 text-[13px] md:text-sm">(no text)</p>
+                            )}
                             {meta && (
                               <p className="mt-1 text-[10px] text-slate-500 truncate">
                                 {meta}
@@ -3655,13 +4319,13 @@ export function AdminAnandPage() {
                       <span className="font-semibold uppercase tracking-wide">
                         Full question
                       </span>
-                      <textarea
+                      <ChemTextTextarea
                         className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         value={pyqEditingQuestion.question_text}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setPyqEditingQuestion((prev) =>
                             prev
-                              ? { ...prev, question_text: e.target.value }
+                              ? { ...prev, question_text: value }
                               : prev
                           )
                         }
@@ -3748,17 +4412,17 @@ export function AdminAnandPage() {
                             <span className="font-semibold uppercase tracking-wide">
                               Option {i + 1}
                             </span>
-                            <textarea
+                            <ChemTextTextarea
                               className="min-h-[48px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                               value={opt || ""}
-                              onChange={(e) =>
+                              onValueChange={(value) =>
                                 setPyqEditingQuestion((prev) => {
                                   if (!prev) return prev;
                                   const nextOpts = [...(prev.options || [])];
                                   while (nextOpts.length < 4) {
                                     nextOpts.push("");
                                   }
-                                  nextOpts[i] = e.target.value;
+                                  nextOpts[i] = value;
                                   return { ...prev, options: nextOpts };
                                 })
                               }
@@ -3772,13 +4436,13 @@ export function AdminAnandPage() {
                       <span className="font-semibold uppercase tracking-wide">
                         Solution (text)
                       </span>
-                      <textarea
+                      <ChemTextTextarea
                         className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         value={pyqEditingQuestion.solution_text || ""}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setPyqEditingQuestion((prev) =>
                             prev
-                              ? { ...prev, solution_text: e.target.value }
+                              ? { ...prev, solution_text: value }
                               : prev
                           )
                         }
