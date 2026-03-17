@@ -64,6 +64,7 @@ function clearAdminVerifyCache() {
 }
 
 type PyqDraftState = {
+  pyqTextMode: "normal" | "katex";
   pyqAddMode: "pdf" | "manual";
   pyqExamMode: "standard" | "cbse";
   cbseSubject: "" | "Physics" | "Chemistry" | "Maths";
@@ -92,6 +93,7 @@ type AdminStatus =
   | "admin";
 
 type ChemistryType = "Organic" | "Inorganic" | "Physical" | "";
+type PyqTextMode = "normal" | "katex";
 
 const CHEMISTRY_TYPE_OPTIONS: Exclude<ChemistryType, "">[] = [
   "Organic",
@@ -216,6 +218,70 @@ function insertAtCursor(
   });
 }
 
+function wrapSelectionWithTokens(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void,
+  prefix: string,
+  suffix: string,
+  fallbackInner: string
+) {
+  const fallbackPos = value.length;
+  const start = element?.selectionStart ?? fallbackPos;
+  const end = element?.selectionEnd ?? fallbackPos;
+  const selected = value.slice(start, end);
+  const inner = selected || fallbackInner;
+  const wrapped = `${prefix}${inner}${suffix}`;
+  const next = value.slice(0, start) + wrapped + value.slice(end);
+  onChange(next);
+
+  requestAnimationFrame(() => {
+    if (!element) return;
+    const cursorStart = start + prefix.length;
+    const cursorEnd = cursorStart + inner.length;
+    element.focus();
+    element.setSelectionRange(cursorStart, cursorEnd);
+  });
+}
+
+function applyInlineLatex(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void
+) {
+  wrapSelectionWithTokens(element, value, onChange, "$", "$", "x^2");
+}
+
+function applyBlockLatex(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void
+) {
+  wrapSelectionWithTokens(
+    element,
+    value,
+    onChange,
+    "$$\n",
+    "\n$$",
+    "\\frac{a}{b}"
+  );
+}
+
+function applyChemEquation(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void
+) {
+  wrapSelectionWithTokens(
+    element,
+    value,
+    onChange,
+    "$\\ce{",
+    "}$",
+    "H2 + O2 -> H2O"
+  );
+}
+
 const SYMBOL_GROUPS: Array<{ label: string; items: string[] }> = [
   {
     label: "Fractions",
@@ -250,6 +316,11 @@ const REACTION_ARROWS: Array<{ label: string; token: string }> = [
   { label: "A ⟹ B", token: " ⟹ " },
   { label: "A ⟵ B", token: " ⟵ " },
 ];
+
+function shouldShowChemPreview(value: string) {
+  if (!value.trim()) return false;
+  return /<(sup|sub|frac)>|\$\$?|\\\(|\\\[|\\ce\{|⟶|⟵|⟷|⇌|⇄|⟹|⇒|→|←|↔/i.test(value);
+}
 
 function ChemTagButtons(props: {
   value: string;
@@ -286,6 +357,27 @@ function ChemTagButtons(props: {
         </button>
         <button
           type="button"
+          onClick={() => applyInlineLatex(targetRef.current, value, onChange)}
+          className="rounded-md border border-violet-700/70 bg-violet-500/10 px-2 py-0.5 text-[11px] text-violet-100 hover:border-violet-400/80 hover:text-violet-50"
+        >
+          $x$
+        </button>
+        <button
+          type="button"
+          onClick={() => applyBlockLatex(targetRef.current, value, onChange)}
+          className="rounded-md border border-violet-700/70 bg-violet-500/10 px-2 py-0.5 text-[11px] text-violet-100 hover:border-violet-400/80 hover:text-violet-50"
+        >
+          $$x$$
+        </button>
+        <button
+          type="button"
+          onClick={() => applyChemEquation(targetRef.current, value, onChange)}
+          className="rounded-md border border-fuchsia-700/70 bg-fuchsia-500/10 px-2 py-0.5 text-[11px] text-fuchsia-100 hover:border-fuchsia-400/80 hover:text-fuchsia-50"
+        >
+          \ce{}
+        </button>
+        <button
+          type="button"
           onClick={() => setShowSymbols((prev) => !prev)}
           className="rounded-md border border-cyan-700/70 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-200 hover:bg-cyan-500/20"
         >
@@ -307,6 +399,10 @@ function ChemTagButtons(props: {
           </button>
         ))}
       </div>
+
+      <p className="text-[10px] text-slate-500">
+        {"KaTeX: use $...$, $$...$$, or $\\ce{...}$ for chemistry equations and reactions."}
+      </p>
 
       {showSymbols ? (
         <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-2.5 space-y-2">
@@ -340,18 +436,29 @@ type ChemTextInputProps = Omit<
 > & {
   value: string;
   onValueChange: (next: string) => void;
+  mode?: PyqTextMode;
 };
 
-function ChemTextInput({ value, onValueChange, className, ...rest }: ChemTextInputProps) {
+function ChemTextInput({
+  value,
+  onValueChange,
+  className,
+  mode = "katex",
+  ...rest
+}: ChemTextInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const mergedClassName = `w-full ${className ?? ""}`.trim();
+  const isKatexMode = mode === "katex";
+  const showPreview = isKatexMode && shouldShowChemPreview(value);
   return (
     <div className="space-y-1.5">
-      <ChemTagButtons
-        value={value}
-        onChange={onValueChange}
-        targetRef={inputRef}
-      />
+      {isKatexMode ? (
+        <ChemTagButtons
+          value={value}
+          onChange={onValueChange}
+          targetRef={inputRef}
+        />
+      ) : null}
       <input
         {...rest}
         ref={inputRef}
@@ -359,6 +466,14 @@ function ChemTextInput({ value, onValueChange, className, ...rest }: ChemTextInp
         onChange={(e) => onValueChange(e.target.value)}
         className={mergedClassName}
       />
+      {showPreview ? (
+        <div className="rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 overflow-hidden">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Preview
+          </p>
+          <ChemText text={value} className="text-sm text-slate-100" />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -369,23 +484,29 @@ type ChemTextTextareaProps = Omit<
 > & {
   value: string;
   onValueChange: (next: string) => void;
+  mode?: PyqTextMode;
 };
 
 function ChemTextTextarea({
   value,
   onValueChange,
   className,
+  mode = "katex",
   ...rest
 }: ChemTextTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mergedClassName = `w-full ${className ?? ""}`.trim();
+  const isKatexMode = mode === "katex";
+  const showPreview = isKatexMode && shouldShowChemPreview(value);
   return (
     <div className="space-y-1.5">
-      <ChemTagButtons
-        value={value}
-        onChange={onValueChange}
-        targetRef={textareaRef}
-      />
+      {isKatexMode ? (
+        <ChemTagButtons
+          value={value}
+          onChange={onValueChange}
+          targetRef={textareaRef}
+        />
+      ) : null}
       <textarea
         {...rest}
         ref={textareaRef}
@@ -393,6 +514,60 @@ function ChemTextTextarea({
         onChange={(e) => onValueChange(e.target.value)}
         className={mergedClassName}
       />
+      {showPreview ? (
+        <div className="rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 overflow-hidden">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Preview
+          </p>
+          <ChemText text={value} className="text-sm text-slate-100" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PyqTextModeToggle(props: {
+  mode: PyqTextMode;
+  onChange: (mode: PyqTextMode) => void;
+  compact?: boolean;
+}) {
+  const { mode, onChange, compact = false } = props;
+  return (
+    <div className={`rounded-xl border border-slate-800 bg-slate-950/50 ${compact ? "p-3" : "p-4"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
+            Text mode
+          </p>
+          <p className="text-[11px] text-slate-500">
+            Choose plain text or full KaTeX/chemistry syntax for PYQ writing.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onChange("normal")}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              mode === "normal"
+                ? "border-slate-400 bg-slate-200/10 text-slate-100"
+                : "border-slate-700 bg-slate-950/40 text-slate-300 hover:border-slate-500"
+            }`}
+          >
+            Normal text
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange("katex")}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              mode === "katex"
+                ? "border-violet-400 bg-violet-500/15 text-violet-100"
+                : "border-slate-700 bg-slate-950/40 text-slate-300 hover:border-violet-500/60"
+            }`}
+          >
+            KaTeX / chemistry
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -415,6 +590,7 @@ export function AdminAnandPage() {
   const [notesExamType, setNotesExamType] = useState("");
   const [bundleSourceExamType, setBundleSourceExamType] = useState("");
   const [bundleTargetExamType, setBundleTargetExamType] = useState("");
+  const [pyqTextMode, setPyqTextMode] = useState<PyqTextMode>("normal");
 
   const [pyqChemType, setPyqChemType] = useState<ChemistryType>("");
   const [notesChemType, setNotesChemType] = useState<ChemistryType>("");
@@ -478,6 +654,7 @@ export function AdminAnandPage() {
     | {
         target: "stem" | "option" | "solution";
         optionIndex?: number;
+        replaceIndex?: number;
       }
   >(null);
 
@@ -486,10 +663,11 @@ export function AdminAnandPage() {
     target: "stem" | "option" | "solution";
     file: File;
     optionIndex?: number;
+    replaceIndex?: number;
   }) => {
-    const { questionId, target, file, optionIndex } = args;
+    const { questionId, target, file, optionIndex, replaceIndex } = args;
     setPyqMessage(null);
-    setPyqImageUploading({ target, optionIndex });
+    setPyqImageUploading({ target, optionIndex, replaceIndex });
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
@@ -502,6 +680,9 @@ export function AdminAnandPage() {
       form.append("target", target);
       if (typeof optionIndex === "number") {
         form.append("option_index", String(optionIndex));
+      }
+      if (typeof replaceIndex === "number") {
+        form.append("replace_index", String(replaceIndex));
       }
       form.append("file", file);
 
@@ -829,6 +1010,10 @@ export function AdminAnandPage() {
       if (!raw) return;
       const draft = JSON.parse(raw) as Partial<PyqDraftState>;
 
+      if (draft.pyqTextMode === "normal" || draft.pyqTextMode === "katex") {
+        setPyqTextMode(draft.pyqTextMode);
+      }
+
       if (draft.pyqAddMode === "pdf" || draft.pyqAddMode === "manual") {
         setPyqAddMode(draft.pyqAddMode);
       }
@@ -885,6 +1070,7 @@ export function AdminAnandPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const draft: PyqDraftState = {
+      pyqTextMode,
       pyqAddMode,
       pyqExamMode,
       cbseSubject,
@@ -906,6 +1092,7 @@ export function AdminAnandPage() {
     };
     window.sessionStorage.setItem(PYQ_DRAFT_KEY, JSON.stringify(draft));
   }, [
+    pyqTextMode,
     pyqAddMode,
     pyqExamMode,
     cbseSubject,
@@ -2410,12 +2597,15 @@ export function AdminAnandPage() {
                   </button>
                 </div>
 
+                <PyqTextModeToggle mode={pyqTextMode} onChange={setPyqTextMode} compact />
+
                 <div className="space-y-3">
                   <label className="flex flex-col gap-1 text-xs text-slate-200">
                     <span className="font-semibold uppercase tracking-wide">
                       Full question
                     </span>
                     <ChemTextTextarea
+                      mode={pyqTextMode}
                       className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       value={pyqEditingQuestion.question_text}
                       onValueChange={(value) =>
@@ -2447,13 +2637,19 @@ export function AdminAnandPage() {
                               questionId: pyqEditingQuestion.id,
                               target: "stem",
                               file: f,
+                              replaceIndex:
+                                (pyqEditingQuestion.question_image_urls || []).length > 0
+                                  ? 0
+                                  : undefined,
                             });
                           }}
                         />
                         <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1">
                           {pyqImageUploading?.target === "stem"
                             ? "Uploading…"
-                            : "Upload image"}
+                            : (pyqEditingQuestion.question_image_urls || []).length > 0
+                              ? "Replace first image"
+                              : "Upload image"}
                         </span>
                       </label>
                     </div>
@@ -2464,20 +2660,43 @@ export function AdminAnandPage() {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {(pyqEditingQuestion.question_image_urls || []).map((url, i) => (
-                          <a
+                          <div
                             key={`${url}-${i}`}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block"
+                            className="relative"
                           >
-                            <img
-                              src={url}
-                              alt={`stem-${i}`}
-                              className="h-20 w-20 rounded-lg border border-slate-700 object-cover hover:border-cyan-400/70"
-                              loading="lazy"
-                            />
-                          </a>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={url}
+                                alt={`stem-${i}`}
+                                className="h-20 w-20 rounded-lg border border-slate-700 object-cover hover:border-cyan-400/70"
+                                loading="lazy"
+                              />
+                            </a>
+                            <label className="absolute bottom-1 left-1 inline-flex cursor-pointer items-center rounded-full border border-slate-700 bg-slate-950/90 px-2 py-0.5 text-[10px] text-slate-200 hover:border-cyan-400/70 hover:text-cyan-200">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const f = e.target.files?.[0];
+                                  e.target.value = "";
+                                  if (!f) return;
+                                  await uploadQuestionImage({
+                                    questionId: pyqEditingQuestion.id,
+                                    target: "stem",
+                                    file: f,
+                                    replaceIndex: i,
+                                  });
+                                }}
+                              />
+                              Replace
+                            </label>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -2617,11 +2836,14 @@ export function AdminAnandPage() {
                                 {pyqImageUploading?.target === "option" &&
                                 pyqImageUploading?.optionIndex === i
                                   ? "Uploading…"
-                                  : "Upload image"}
+                                  : (pyqEditingQuestion.option_image_urls || [])[i]
+                                    ? "Replace image"
+                                    : "Upload image"}
                               </span>
                             </label>
                           </div>
                           <ChemTextTextarea
+                            mode={pyqTextMode}
                             className="min-h-[48px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             value={opt || ""}
                             onValueChange={(value) =>
@@ -2661,6 +2883,7 @@ export function AdminAnandPage() {
                       Solution (text)
                     </span>
                     <ChemTextTextarea
+                      mode={pyqTextMode}
                       className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       value={pyqEditingQuestion.solution_text || ""}
                       onValueChange={(value) =>
@@ -2692,13 +2915,19 @@ export function AdminAnandPage() {
                               questionId: pyqEditingQuestion.id,
                               target: "solution",
                               file: f,
+                              replaceIndex:
+                                (pyqEditingQuestion.solution_image_urls || []).length > 0
+                                  ? 0
+                                  : undefined,
                             });
                           }}
                         />
                         <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1">
                           {pyqImageUploading?.target === "solution"
                             ? "Uploading…"
-                            : "Upload image"}
+                            : (pyqEditingQuestion.solution_image_urls || []).length > 0
+                              ? "Replace first image"
+                              : "Upload image"}
                         </span>
                       </label>
                     </div>
@@ -2709,20 +2938,43 @@ export function AdminAnandPage() {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {(pyqEditingQuestion.solution_image_urls || []).map((url, i) => (
-                          <a
+                          <div
                             key={`${url}-${i}`}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block"
+                            className="relative"
                           >
-                            <img
-                              src={url}
-                              alt={`sol-${i}`}
-                              className="h-20 w-20 rounded-lg border border-slate-700 object-cover hover:border-cyan-400/70"
-                              loading="lazy"
-                            />
-                          </a>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={url}
+                                alt={`sol-${i}`}
+                                className="h-20 w-20 rounded-lg border border-slate-700 object-cover hover:border-cyan-400/70"
+                                loading="lazy"
+                              />
+                            </a>
+                            <label className="absolute bottom-1 left-1 inline-flex cursor-pointer items-center rounded-full border border-slate-700 bg-slate-950/90 px-2 py-0.5 text-[10px] text-slate-200 hover:border-cyan-400/70 hover:text-cyan-200">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const f = e.target.files?.[0];
+                                  e.target.value = "";
+                                  if (!f) return;
+                                  await uploadQuestionImage({
+                                    questionId: pyqEditingQuestion.id,
+                                    target: "solution",
+                                    file: f,
+                                    replaceIndex: i,
+                                  });
+                                }}
+                              />
+                              Replace
+                            </label>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -2858,6 +3110,17 @@ export function AdminAnandPage() {
             Add manually (with images)
           </button>
         </div>
+        )}
+
+        {!pyqBrowseAll && (
+          <div className="mb-6">
+            <PyqTextModeToggle mode={pyqTextMode} onChange={setPyqTextMode} />
+            <p className="mt-2 text-[11px] text-slate-500">
+              {pyqTextMode === "katex"
+                ? "KaTeX mode is on. You can write full formulas, reactions, and chemistry notation."
+                : "Normal text mode is on. Fields behave like standard text inputs without KaTeX helpers."}
+            </p>
+          </div>
         )}
 
         {!pyqBrowseAll && (
@@ -3156,6 +3419,7 @@ export function AdminAnandPage() {
                   Question
                 </label>
                 <ChemTextTextarea
+                  mode={pyqTextMode}
                   value={manualQuestion}
                   onValueChange={setManualQuestion}
                   rows={4}
@@ -3163,7 +3427,9 @@ export function AdminAnandPage() {
                   placeholder="Type the question statement…"
                 />
                 <p className="text-[11px] text-slate-400">
-                  Select text and click x² / x₂. You can also type tags directly: &lt;sup&gt;...&lt;/sup&gt; and &lt;sub&gt;...&lt;/sub&gt;.
+                  {pyqTextMode === "katex"
+                    ? "Use the toolbar for superscript, fractions, KaTeX math, or chemistry reactions like $\\ce{H2 + Cl2 -> 2HCl}$."
+                    : "Normal text mode is active. Type the question exactly as plain text without KaTeX syntax."}
                 </p>
               </div>
 
@@ -3219,6 +3485,7 @@ export function AdminAnandPage() {
                       Option 1 (A) text
                     </label>
                     <ChemTextInput
+                      mode={pyqTextMode}
                       value={manualOpt1}
                       onValueChange={setManualOpt1}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -3253,6 +3520,7 @@ export function AdminAnandPage() {
                       Option 2 (B) text
                     </label>
                     <ChemTextInput
+                      mode={pyqTextMode}
                       value={manualOpt2}
                       onValueChange={setManualOpt2}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -3287,6 +3555,7 @@ export function AdminAnandPage() {
                       Option 3 (C) text
                     </label>
                     <ChemTextInput
+                      mode={pyqTextMode}
                       value={manualOpt3}
                       onValueChange={setManualOpt3}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -3321,6 +3590,7 @@ export function AdminAnandPage() {
                       Option 4 (D) text
                     </label>
                     <ChemTextInput
+                      mode={pyqTextMode}
                       value={manualOpt4}
                       onValueChange={setManualOpt4}
                       className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -3356,6 +3626,7 @@ export function AdminAnandPage() {
                   Solution (optional)
                 </label>
                 <ChemTextTextarea
+                  mode={pyqTextMode}
                   value={manualSolution}
                   onValueChange={setManualSolution}
                   rows={3}
@@ -4314,12 +4585,15 @@ export function AdminAnandPage() {
                     </button>
                   </div>
 
+                  <PyqTextModeToggle mode={pyqTextMode} onChange={setPyqTextMode} compact />
+
                   <div className="space-y-3">
                     <label className="flex flex-col gap-1 text-xs text-slate-200">
                       <span className="font-semibold uppercase tracking-wide">
                         Full question
                       </span>
                       <ChemTextTextarea
+                        mode={pyqTextMode}
                         className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         value={pyqEditingQuestion.question_text}
                         onValueChange={(value) =>
@@ -4413,6 +4687,7 @@ export function AdminAnandPage() {
                               Option {i + 1}
                             </span>
                             <ChemTextTextarea
+                              mode={pyqTextMode}
                               className="min-h-[48px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                               value={opt || ""}
                               onValueChange={(value) =>
@@ -4437,6 +4712,7 @@ export function AdminAnandPage() {
                         Solution (text)
                       </span>
                       <ChemTextTextarea
+                        mode={pyqTextMode}
                         className="min-h-[80px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         value={pyqEditingQuestion.solution_text || ""}
                         onValueChange={(value) =>

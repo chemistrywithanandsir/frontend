@@ -1,7 +1,159 @@
 import React from "react";
+import katex from "katex";
+import "katex/contrib/mhchem";
 
-const CHEM_TAG_REGEX = /<(sup|sub|frac)>([\s\S]*?)<\/\1>/gi;
+const CHEM_TAG_REGEX = /^<(sup|sub|frac)>([\s\S]*?)<\/\1>/i;
+const CHEM_TAG_START_REGEX = /<(sup|sub|frac)>/i;
 const ARROW_REGEX = /(⟶|⟵|⟷|⇌|⇄|⟹|⇒|→|←|↔)/g;
+
+type ChemSegment =
+  | { type: "plain"; content: string }
+  | { type: "tag"; tag: "sup" | "sub" | "frac"; content: string }
+  | { type: "math"; content: string; displayMode: boolean };
+
+function findUnescapedDelimiter(input: string, delimiter: string, start: number) {
+  for (let index = start; index <= input.length - delimiter.length; index += 1) {
+    if (!input.startsWith(delimiter, index)) continue;
+    let slashCount = 0;
+    for (let cursor = index - 1; cursor >= 0 && input[cursor] === "\\"; cursor -= 1) {
+      slashCount += 1;
+    }
+    if (slashCount % 2 === 0) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function readMathSegment(input: string, start: number): ChemSegment | null {
+  const displayDollar = "$$";
+  if (input.startsWith(displayDollar, start)) {
+    const end = findUnescapedDelimiter(input, displayDollar, start + displayDollar.length);
+    if (end > start) {
+      return {
+        type: "math",
+        content: input.slice(start + displayDollar.length, end),
+        displayMode: true,
+      };
+    }
+    return null;
+  }
+
+  if (input.startsWith("\\[", start)) {
+    const end = input.indexOf("\\]", start + 2);
+    if (end > start) {
+      return {
+        type: "math",
+        content: input.slice(start + 2, end),
+        displayMode: true,
+      };
+    }
+    return null;
+  }
+
+  if (input.startsWith("\\(", start)) {
+    const end = input.indexOf("\\)", start + 2);
+    if (end > start) {
+      return {
+        type: "math",
+        content: input.slice(start + 2, end),
+        displayMode: false,
+      };
+    }
+    return null;
+  }
+
+  if (input[start] === "$" && input[start + 1] !== "$" && input[start - 1] !== "\\") {
+    const end = findUnescapedDelimiter(input, "$", start + 1);
+    if (end > start + 1) {
+      return {
+        type: "math",
+        content: input.slice(start + 1, end),
+        displayMode: false,
+      };
+    }
+  }
+
+  return null;
+}
+
+function readChemTagSegment(input: string, start: number): ChemSegment | null {
+  const remaining = input.slice(start);
+  const tagMatch = remaining.match(CHEM_TAG_REGEX);
+  if (!tagMatch) return null;
+  const [full, tagRaw, content] = tagMatch;
+  if (!full) return null;
+  return {
+    type: "tag",
+    tag: tagRaw.toLowerCase() as "sup" | "sub" | "frac",
+    content,
+  };
+}
+
+function consumedLengthForMath(input: string, start: number, segment: Extract<ChemSegment, { type: "math" }>) {
+  if (input.startsWith("$$", start)) {
+    return segment.content.length + 4;
+  }
+  if (input.startsWith("\\[", start) || input.startsWith("\\(", start)) {
+    return segment.content.length + 4;
+  }
+  return segment.content.length + 2;
+}
+
+function tokenizeChemText(text: string): ChemSegment[] {
+  if (!text) return [];
+
+  const parts: ChemSegment[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const remaining = text.slice(cursor);
+    const tagSegment = readChemTagSegment(text, cursor);
+    if (tagSegment) {
+      parts.push(tagSegment);
+      const full = remaining.match(CHEM_TAG_REGEX)?.[0] || "";
+      cursor += full.length;
+      continue;
+    }
+
+    const mathSegment = readMathSegment(text, cursor);
+    if (mathSegment) {
+      parts.push(mathSegment);
+      cursor += consumedLengthForMath(text, cursor, mathSegment);
+      continue;
+    }
+
+    const nextTagIndex = (() => {
+      const match = remaining.match(CHEM_TAG_START_REGEX);
+      return typeof match?.index === "number" ? match.index : -1;
+    })();
+    const nextMathIndex = (() => {
+      for (let index = cursor; index < text.length; index += 1) {
+        const ch = text[index];
+        if (ch !== "$" && ch !== "\\") continue;
+        if (readMathSegment(text, index)) {
+          return index - cursor;
+        }
+      }
+      return -1;
+    })();
+
+    const nextBoundary = [nextTagIndex, nextMathIndex]
+      .filter((value) => value >= 0)
+      .sort((a, b) => a - b)[0];
+
+    if (typeof nextBoundary === "number") {
+      parts.push({ type: "plain", content: remaining.slice(0, nextBoundary) });
+      cursor += nextBoundary;
+      continue;
+    }
+
+    parts.push({ type: "plain", content: remaining });
+    break;
+  }
+
+  return parts.filter((part) => part.content.length > 0);
+}
 
 function renderFraction(content: string, key: string) {
   const raw = String(content || "").trim();
@@ -20,6 +172,37 @@ function renderFraction(content: string, key: string) {
       <span className="text-[0.88em] px-[0.08em]">{denominator}</span>
     </span>
   );
+}
+
+function renderMath(content: string, key: string, displayMode: boolean) {
+  const source = String(content || "").trim();
+  if (!source) {
+    return null;
+  }
+
+  try {
+    const html = katex.renderToString(source, {
+      displayMode,
+      throwOnError: false,
+      output: "htmlAndMathml",
+      strict: "ignore",
+      trust: true,
+    });
+
+    return (
+      <span
+        key={key}
+        className={
+          displayMode
+            ? "block w-full max-w-full my-2 overflow-hidden [&_.katex-display]:my-0 [&_.katex-display]:max-w-full [&_.katex-display]:overflow-hidden [&_.katex]:max-w-full"
+            : "inline-block align-middle max-w-full overflow-hidden [&_.katex]:max-w-full"
+        }
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  } catch {
+    return <span key={key}>{source}</span>;
+  }
 }
 
 function pushPlainWithStyledArrows(
@@ -64,33 +247,31 @@ function parseChemText(text: string): React.ReactNode[] {
 
   const nodes: React.ReactNode[] = [];
   const keyRef = { value: 0 };
-  let lastIndex = 0;
-  CHEM_TAG_REGEX.lastIndex = 0;
-
-  let match = CHEM_TAG_REGEX.exec(text);
-  while (match) {
-    const [full, tagRaw, content] = match;
-    const start = match.index;
-
-    if (start > lastIndex) {
-      pushPlainWithStyledArrows(text.slice(lastIndex, start), nodes, keyRef);
+  for (const segment of tokenizeChemText(text)) {
+    if (segment.type === "plain") {
+      pushPlainWithStyledArrows(segment.content, nodes, keyRef);
+      continue;
     }
 
-    const tag = String(tagRaw).toLowerCase();
-    if (tag === "sup") {
-      nodes.push(<sup key={`sup-${keyRef.value++}`}>{content}</sup>);
-    } else if (tag === "frac") {
-      nodes.push(renderFraction(content, `frac-${keyRef.value++}`));
+    if (segment.type === "math") {
+      const mathNode = renderMath(
+        segment.content,
+        `math-${keyRef.value++}`,
+        segment.displayMode
+      );
+      if (mathNode) {
+        nodes.push(mathNode);
+      }
+      continue;
+    }
+
+    if (segment.tag === "sup") {
+      nodes.push(<sup key={`sup-${keyRef.value++}`}>{segment.content}</sup>);
+    } else if (segment.tag === "frac") {
+      nodes.push(renderFraction(segment.content, `frac-${keyRef.value++}`));
     } else {
-      nodes.push(<sub key={`sub-${keyRef.value++}`}>{content}</sub>);
+      nodes.push(<sub key={`sub-${keyRef.value++}`}>{segment.content}</sub>);
     }
-
-    lastIndex = start + full.length;
-    match = CHEM_TAG_REGEX.exec(text);
-  }
-
-  if (lastIndex < text.length) {
-    pushPlainWithStyledArrows(text.slice(lastIndex), nodes, keyRef);
   }
 
   return nodes;
@@ -102,5 +283,5 @@ type ChemTextProps = {
 };
 
 export function ChemText({ text, className }: ChemTextProps) {
-  return <span className={className}>{parseChemText(text)}</span>;
+  return <span className={["whitespace-pre-wrap", className].filter(Boolean).join(" ")}>{parseChemText(text)}</span>;
 }
