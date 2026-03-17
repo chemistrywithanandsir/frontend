@@ -657,6 +657,14 @@ export function AdminAnandPage() {
         replaceIndex?: number;
       }
   >(null);
+  const [pyqImageDeleting, setPyqImageDeleting] = useState<
+    | null
+    | {
+        target: "stem" | "option" | "solution";
+        optionIndex?: number;
+        removeIndex?: number;
+      }
+  >(null);
 
   const uploadQuestionImage = async (args: {
     questionId: string;
@@ -740,6 +748,90 @@ export function AdminAnandPage() {
       });
     } finally {
       setPyqImageUploading(null);
+    }
+  };
+
+  const deleteQuestionImage = async (args: {
+    questionId: string;
+    target: "stem" | "option" | "solution";
+    optionIndex?: number;
+    removeIndex?: number;
+  }) => {
+    const { questionId, target, optionIndex, removeIndex } = args;
+    setPyqMessage(null);
+    setPyqImageDeleting({ target, optionIndex, removeIndex });
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        throw new Error("Not signed in.");
+      }
+
+      const form = new FormData();
+      form.append("question_id", questionId);
+      form.append("target", target);
+      if (typeof optionIndex === "number") {
+        form.append("option_index", String(optionIndex));
+      }
+      if (typeof removeIndex === "number") {
+        form.append("remove_index", String(removeIndex));
+      }
+
+      const res = await fetch(
+        `${API_BASE}/admin/pyq/questions/images/delete`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail =
+          (Array.isArray(json.detail)
+            ? json.detail.map((d: { msg?: string }) => d.msg).join(" ")
+            : json.detail) || res.statusText;
+        throw new Error(detail);
+      }
+
+      const nextStem = Array.isArray(json.question_image_urls)
+        ? (json.question_image_urls as string[])
+        : undefined;
+      const nextOpt = Array.isArray(json.option_image_urls)
+        ? (json.option_image_urls as string[])
+        : undefined;
+      const nextSol = Array.isArray(json.solution_image_urls)
+        ? (json.solution_image_urls as string[])
+        : undefined;
+
+      setPyqQuestions((prev) =>
+        prev.map((q) => {
+          if (q.id !== questionId) return q;
+          return {
+            ...q,
+            question_image_urls: nextStem ?? q.question_image_urls,
+            option_image_urls: nextOpt ?? q.option_image_urls,
+            solution_image_urls: nextSol ?? q.solution_image_urls,
+          };
+        })
+      );
+      setPyqEditingQuestion((prev) => {
+        if (!prev || prev.id !== questionId) return prev;
+        return {
+          ...prev,
+          question_image_urls: nextStem ?? prev.question_image_urls,
+          option_image_urls: nextOpt ?? prev.option_image_urls,
+          solution_image_urls: nextSol ?? prev.solution_image_urls,
+        };
+      });
+      setPyqMessage({ type: "success", text: "Image removed." });
+    } catch (err) {
+      setPyqMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to remove image.",
+      });
+    } finally {
+      setPyqImageDeleting(null);
     }
   };
 
@@ -990,6 +1082,40 @@ export function AdminAnandPage() {
           target === "option"
             ? "Pasted option image from clipboard."
             : `Pasted ${files.length} image${files.length > 1 ? "s" : ""} from clipboard.`,
+      });
+    } catch (err) {
+      setPyqMessage({
+        type: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Could not read image from clipboard.",
+      });
+    }
+  };
+
+  const pasteClipboardImageForQuestionEdit = async (args: {
+    questionId: string;
+    target: "stem" | "option" | "solution";
+    optionIndex?: number;
+    replaceIndex?: number;
+  }) => {
+    try {
+      const files = await readClipboardImageFiles();
+      const file = files[0];
+      if (!file) {
+        setPyqMessage({ type: "error", text: "No image found in clipboard." });
+        return;
+      }
+      await uploadQuestionImage({ ...args, file });
+      setPyqMessage({
+        type: "success",
+        text:
+          args.target === "option"
+            ? `Pasted screenshot and updated option ${
+                (typeof args.optionIndex === "number" ? args.optionIndex : 0) + 1
+              } image.`
+            : "Pasted screenshot and updated image.",
       });
     } catch (err) {
       setPyqMessage({
@@ -2624,34 +2750,54 @@ export function AdminAnandPage() {
                       <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                         Question images
                       </p>
-                      <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 hover:text-cyan-200 cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const f = e.target.files?.[0];
-                            e.target.value = "";
-                            if (!f) return;
-                            await uploadQuestionImage({
+                      <div className="inline-flex items-center gap-2">
+                        <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 hover:text-cyan-200 cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              e.target.value = "";
+                              if (!f) return;
+                              await uploadQuestionImage({
+                                questionId: pyqEditingQuestion.id,
+                                target: "stem",
+                                file: f,
+                                replaceIndex:
+                                  (pyqEditingQuestion.question_image_urls || []).length > 0
+                                    ? 0
+                                    : undefined,
+                              });
+                            }}
+                          />
+                          <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1">
+                            {pyqImageUploading?.target === "stem"
+                              ? "Uploading…"
+                              : (pyqEditingQuestion.question_image_urls || []).length > 0
+                                ? "Replace first image"
+                                : "Upload image"}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void pasteClipboardImageForQuestionEdit({
                               questionId: pyqEditingQuestion.id,
                               target: "stem",
-                              file: f,
                               replaceIndex:
                                 (pyqEditingQuestion.question_image_urls || []).length > 0
                                   ? 0
                                   : undefined,
-                            });
-                          }}
-                        />
-                        <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1">
-                          {pyqImageUploading?.target === "stem"
-                            ? "Uploading…"
-                            : (pyqEditingQuestion.question_image_urls || []).length > 0
-                              ? "Replace first image"
-                              : "Upload image"}
-                        </span>
-                      </label>
+                            })
+                          }
+                          className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-[11px] text-slate-300 hover:border-cyan-400/60 hover:text-cyan-200"
+                        >
+                          {(pyqEditingQuestion.question_image_urls || []).length > 0
+                            ? "Paste to replace"
+                            : "Paste screenshot"}
+                        </button>
+                      </div>
                     </div>
                     {(pyqEditingQuestion.question_image_urls || []).length === 0 ? (
                       <p className="text-[11px] text-slate-500">
@@ -2662,7 +2808,7 @@ export function AdminAnandPage() {
                         {(pyqEditingQuestion.question_image_urls || []).map((url, i) => (
                           <div
                             key={`${url}-${i}`}
-                            className="relative"
+                            className="group relative"
                           >
                             <a
                               href={url}
@@ -2677,6 +2823,20 @@ export function AdminAnandPage() {
                                 loading="lazy"
                               />
                             </a>
+                            <button
+                              type="button"
+                              title="Remove image"
+                              onClick={() =>
+                                void deleteQuestionImage({
+                                  questionId: pyqEditingQuestion.id,
+                                  target: "stem",
+                                  removeIndex: i,
+                                })
+                              }
+                              className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/60 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                            >
+                              ×
+                            </button>
                             <label className="absolute bottom-1 left-1 inline-flex cursor-pointer items-center rounded-full border border-slate-700 bg-slate-950/90 px-2 py-0.5 text-[10px] text-slate-200 hover:border-cyan-400/70 hover:text-cyan-200">
                               <input
                                 type="file"
@@ -2696,6 +2856,10 @@ export function AdminAnandPage() {
                               />
                               Replace
                             </label>
+                            {pyqImageDeleting?.target === "stem" &&
+                              pyqImageDeleting?.removeIndex === i && (
+                                <div className="pointer-events-none absolute inset-0 rounded-lg bg-slate-950/70" />
+                              )}
                           </div>
                         ))}
                       </div>
@@ -2815,32 +2979,49 @@ export function AdminAnandPage() {
                             <span className="font-semibold uppercase tracking-wide">
                               Option {i + 1}
                             </span>
-                            <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 hover:text-cyan-200 cursor-pointer">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const f = e.target.files?.[0];
-                                  e.target.value = "";
-                                  if (!f) return;
-                                  await uploadQuestionImage({
+                            <div className="inline-flex items-center gap-2">
+                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 hover:text-cyan-200 cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const f = e.target.files?.[0];
+                                    e.target.value = "";
+                                    if (!f) return;
+                                    await uploadQuestionImage({
+                                      questionId: pyqEditingQuestion.id,
+                                      target: "option",
+                                      optionIndex: i,
+                                      file: f,
+                                    });
+                                  }}
+                                />
+                                <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2 py-0.5">
+                                  {pyqImageUploading?.target === "option" &&
+                                  pyqImageUploading?.optionIndex === i
+                                    ? "Uploading…"
+                                    : (pyqEditingQuestion.option_image_urls || [])[i]
+                                      ? "Replace image"
+                                      : "Upload image"}
+                                </span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void pasteClipboardImageForQuestionEdit({
                                     questionId: pyqEditingQuestion.id,
                                     target: "option",
                                     optionIndex: i,
-                                    file: f,
-                                  });
-                                }}
-                              />
-                              <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2 py-0.5">
-                                {pyqImageUploading?.target === "option" &&
-                                pyqImageUploading?.optionIndex === i
-                                  ? "Uploading…"
-                                  : (pyqEditingQuestion.option_image_urls || [])[i]
-                                    ? "Replace image"
-                                    : "Upload image"}
-                              </span>
-                            </label>
+                                  })
+                                }
+                                className="rounded-full border border-slate-700 bg-slate-900/70 px-2 py-0.5 text-[11px] text-slate-300 hover:border-cyan-400/60 hover:text-cyan-200"
+                              >
+                                {(pyqEditingQuestion.option_image_urls || [])[i]
+                                  ? "Paste replace"
+                                  : "Paste"}
+                              </button>
+                            </div>
                           </div>
                           <ChemTextTextarea
                             mode={pyqTextMode}
@@ -2859,19 +3040,39 @@ export function AdminAnandPage() {
                             }
                           />
                           {!!(pyqEditingQuestion.option_image_urls || [])[i] && (
-                            <a
-                              href={(pyqEditingQuestion.option_image_urls || [])[i]}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-2 inline-block"
-                            >
-                              <img
-                                src={(pyqEditingQuestion.option_image_urls || [])[i]}
-                                alt={`opt-${i}`}
-                                className="h-20 w-20 rounded-lg border border-slate-700 object-cover hover:border-cyan-400/70"
-                                loading="lazy"
-                              />
-                            </a>
+                            <div className="group relative mt-2 inline-block">
+                              <a
+                                href={(pyqEditingQuestion.option_image_urls || [])[i]}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-block"
+                              >
+                                <img
+                                  src={(pyqEditingQuestion.option_image_urls || [])[i]}
+                                  alt={`opt-${i}`}
+                                  className="h-20 w-20 rounded-lg border border-slate-700 object-cover hover:border-cyan-400/70"
+                                  loading="lazy"
+                                />
+                              </a>
+                              <button
+                                type="button"
+                                title="Remove image"
+                                onClick={() =>
+                                  void deleteQuestionImage({
+                                    questionId: pyqEditingQuestion.id,
+                                    target: "option",
+                                    optionIndex: i,
+                                  })
+                                }
+                                className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/60 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                              >
+                                ×
+                              </button>
+                              {pyqImageDeleting?.target === "option" &&
+                                pyqImageDeleting?.optionIndex === i && (
+                                  <div className="pointer-events-none absolute inset-0 rounded-lg bg-slate-950/70" />
+                                )}
+                            </div>
                           )}
                         </label>
                       ))}
@@ -2902,34 +3103,54 @@ export function AdminAnandPage() {
                       <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
                         Solution images
                       </p>
-                      <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 hover:text-cyan-200 cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const f = e.target.files?.[0];
-                            e.target.value = "";
-                            if (!f) return;
-                            await uploadQuestionImage({
+                      <div className="inline-flex items-center gap-2">
+                        <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 hover:text-cyan-200 cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              e.target.value = "";
+                              if (!f) return;
+                              await uploadQuestionImage({
+                                questionId: pyqEditingQuestion.id,
+                                target: "solution",
+                                file: f,
+                                replaceIndex:
+                                  (pyqEditingQuestion.solution_image_urls || []).length > 0
+                                    ? 0
+                                    : undefined,
+                              });
+                            }}
+                          />
+                          <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1">
+                            {pyqImageUploading?.target === "solution"
+                              ? "Uploading…"
+                              : (pyqEditingQuestion.solution_image_urls || []).length > 0
+                                ? "Replace first image"
+                                : "Upload image"}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void pasteClipboardImageForQuestionEdit({
                               questionId: pyqEditingQuestion.id,
                               target: "solution",
-                              file: f,
                               replaceIndex:
                                 (pyqEditingQuestion.solution_image_urls || []).length > 0
                                   ? 0
                                   : undefined,
-                            });
-                          }}
-                        />
-                        <span className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1">
-                          {pyqImageUploading?.target === "solution"
-                            ? "Uploading…"
-                            : (pyqEditingQuestion.solution_image_urls || []).length > 0
-                              ? "Replace first image"
-                              : "Upload image"}
-                        </span>
-                      </label>
+                            })
+                          }
+                          className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-[11px] text-slate-300 hover:border-cyan-400/60 hover:text-cyan-200"
+                        >
+                          {(pyqEditingQuestion.solution_image_urls || []).length > 0
+                            ? "Paste to replace"
+                            : "Paste screenshot"}
+                        </button>
+                      </div>
                     </div>
                     {(pyqEditingQuestion.solution_image_urls || []).length === 0 ? (
                       <p className="text-[11px] text-slate-500">
@@ -2940,7 +3161,7 @@ export function AdminAnandPage() {
                         {(pyqEditingQuestion.solution_image_urls || []).map((url, i) => (
                           <div
                             key={`${url}-${i}`}
-                            className="relative"
+                            className="group relative"
                           >
                             <a
                               href={url}
@@ -2955,6 +3176,20 @@ export function AdminAnandPage() {
                                 loading="lazy"
                               />
                             </a>
+                            <button
+                              type="button"
+                              title="Remove image"
+                              onClick={() =>
+                                void deleteQuestionImage({
+                                  questionId: pyqEditingQuestion.id,
+                                  target: "solution",
+                                  removeIndex: i,
+                                })
+                              }
+                              className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/60 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                            >
+                              ×
+                            </button>
                             <label className="absolute bottom-1 left-1 inline-flex cursor-pointer items-center rounded-full border border-slate-700 bg-slate-950/90 px-2 py-0.5 text-[10px] text-slate-200 hover:border-cyan-400/70 hover:text-cyan-200">
                               <input
                                 type="file"
@@ -2974,6 +3209,10 @@ export function AdminAnandPage() {
                               />
                               Replace
                             </label>
+                            {pyqImageDeleting?.target === "solution" &&
+                              pyqImageDeleting?.removeIndex === i && (
+                                <div className="pointer-events-none absolute inset-0 rounded-lg bg-slate-950/70" />
+                              )}
                           </div>
                         ))}
                       </div>
@@ -3455,21 +3694,27 @@ export function AdminAnandPage() {
                   className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                 />
                 {manualPastedStemImages.length > 0 && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {manualPastedStemImages.map((file, index) => (
                       <div
                         key={`${file.name}-${index}`}
-                        className="flex items-center justify-between rounded border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+                        className="group relative"
                       >
-                        <span className="truncate pr-2">{file.name}</span>
+                        <img
+                          src={URL.createObjectURL(file)}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                          alt={file.name}
+                          className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                        />
                         <button
                           type="button"
                           onClick={() =>
                             setManualPastedStemImages((prev) => prev.filter((_, idx) => idx !== index))
                           }
-                          className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] text-rose-200"
+                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                          title="Remove image"
                         >
-                          Remove
+                          ×
                         </button>
                       </div>
                     ))}
@@ -3507,9 +3752,28 @@ export function AdminAnandPage() {
                       Paste image
                     </button>
                     {manualPastedOptionImages[0] && (
-                      <span className="text-[11px] text-slate-400 truncate">
-                        {manualPastedOptionImages[0]?.name}
-                      </span>
+                      <div className="group relative">
+                        <img
+                          src={URL.createObjectURL(manualPastedOptionImages[0])}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                          alt={manualPastedOptionImages[0].name}
+                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setManualPastedOptionImages((prev) => {
+                              const next = [...prev];
+                              next[0] = null;
+                              return next;
+                            })
+                          }
+                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3542,9 +3806,28 @@ export function AdminAnandPage() {
                       Paste image
                     </button>
                     {manualPastedOptionImages[1] && (
-                      <span className="text-[11px] text-slate-400 truncate">
-                        {manualPastedOptionImages[1]?.name}
-                      </span>
+                      <div className="group relative">
+                        <img
+                          src={URL.createObjectURL(manualPastedOptionImages[1])}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                          alt={manualPastedOptionImages[1].name}
+                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setManualPastedOptionImages((prev) => {
+                              const next = [...prev];
+                              next[1] = null;
+                              return next;
+                            })
+                          }
+                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3577,9 +3860,28 @@ export function AdminAnandPage() {
                       Paste image
                     </button>
                     {manualPastedOptionImages[2] && (
-                      <span className="text-[11px] text-slate-400 truncate">
-                        {manualPastedOptionImages[2]?.name}
-                      </span>
+                      <div className="group relative">
+                        <img
+                          src={URL.createObjectURL(manualPastedOptionImages[2])}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                          alt={manualPastedOptionImages[2].name}
+                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setManualPastedOptionImages((prev) => {
+                              const next = [...prev];
+                              next[2] = null;
+                              return next;
+                            })
+                          }
+                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3612,9 +3914,28 @@ export function AdminAnandPage() {
                       Paste image
                     </button>
                     {manualPastedOptionImages[3] && (
-                      <span className="text-[11px] text-slate-400 truncate">
-                        {manualPastedOptionImages[3]?.name}
-                      </span>
+                      <div className="group relative">
+                        <img
+                          src={URL.createObjectURL(manualPastedOptionImages[3])}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                          alt={manualPastedOptionImages[3].name}
+                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setManualPastedOptionImages((prev) => {
+                              const next = [...prev];
+                              next[3] = null;
+                              return next;
+                            })
+                          }
+                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3657,21 +3978,27 @@ export function AdminAnandPage() {
                   className="block w-full text-sm text-slate-200 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:text-cyan-300 hover:file:bg-cyan-500/20"
                 />
                 {manualPastedSolutionImages.length > 0 && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {manualPastedSolutionImages.map((file, index) => (
                       <div
                         key={`${file.name}-${index}`}
-                        className="flex items-center justify-between rounded border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+                        className="group relative"
                       >
-                        <span className="truncate pr-2">{file.name}</span>
+                        <img
+                          src={URL.createObjectURL(file)}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                          alt={file.name}
+                          className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                        />
                         <button
                           type="button"
                           onClick={() =>
                             setManualPastedSolutionImages((prev) => prev.filter((_, idx) => idx !== index))
                           }
-                          className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] text-rose-200"
+                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                          title="Remove image"
                         >
-                          Remove
+                          ×
                         </button>
                       </div>
                     ))}
