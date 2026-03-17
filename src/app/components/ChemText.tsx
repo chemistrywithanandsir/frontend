@@ -2,13 +2,13 @@ import React from "react";
 import katex from "katex";
 import "katex/contrib/mhchem";
 
-const CHEM_TAG_REGEX = /^<(sup|sub|frac)>([\s\S]*?)<\/\1>/i;
-const CHEM_TAG_START_REGEX = /<(sup|sub|frac)>/i;
+const CHEM_TAG_REGEX = /^<(sup|sub|frac|b)>([\s\S]*?)<\/\1>/i;
+const CHEM_TAG_START_REGEX = /<(sup|sub|frac|b)>/i;
 const ARROW_REGEX = /(⟶|⟵|⟷|⇌|⇄|⟹|⇒|→|←|↔)/g;
 
 type ChemSegment =
   | { type: "plain"; content: string }
-  | { type: "tag"; tag: "sup" | "sub" | "frac"; content: string }
+  | { type: "tag"; tag: "sup" | "sub" | "frac" | "b"; content: string }
   | { type: "math"; content: string; displayMode: boolean };
 
 function findUnescapedDelimiter(input: string, delimiter: string, start: number) {
@@ -85,7 +85,7 @@ function readChemTagSegment(input: string, start: number): ChemSegment | null {
   if (!full) return null;
   return {
     type: "tag",
-    tag: tagRaw.toLowerCase() as "sup" | "sub" | "frac",
+    tag: tagRaw.toLowerCase() as "sup" | "sub" | "frac" | "b",
     content,
   };
 }
@@ -269,6 +269,8 @@ function parseChemText(text: string): React.ReactNode[] {
       nodes.push(<sup key={`sup-${keyRef.value++}`}>{segment.content}</sup>);
     } else if (segment.tag === "frac") {
       nodes.push(renderFraction(segment.content, `frac-${keyRef.value++}`));
+    } else if (segment.tag === "b") {
+      nodes.push(<b key={`b-${keyRef.value++}`}>{segment.content}</b>);
     } else {
       nodes.push(<sub key={`sub-${keyRef.value++}`}>{segment.content}</sub>);
     }

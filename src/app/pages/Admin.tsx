@@ -169,6 +169,30 @@ function applyChemTag(
   });
 }
 
+function applyBoldTag(
+  element: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  onChange: (next: string) => void
+) {
+  const open = "<b>";
+  const close = "</b>";
+  const fallbackPos = value.length;
+  const start = element?.selectionStart ?? fallbackPos;
+  const end = element?.selectionEnd ?? fallbackPos;
+  const selected = value.slice(start, end);
+  const wrapped = `${open}${selected}${close}`;
+  const next = value.slice(0, start) + wrapped + value.slice(end);
+  onChange(next);
+
+  requestAnimationFrame(() => {
+    if (!element) return;
+    const cursorStart = start + open.length;
+    const cursorEnd = cursorStart + selected.length;
+    element.focus();
+    element.setSelectionRange(cursorStart, cursorEnd || cursorStart);
+  });
+}
+
 function applyFractionTag(
   element: HTMLTextAreaElement | HTMLInputElement | null,
   value: string,
@@ -319,7 +343,7 @@ const REACTION_ARROWS: Array<{ label: string; token: string }> = [
 
 function shouldShowChemPreview(value: string) {
   if (!value.trim()) return false;
-  return /<(sup|sub|frac)>|\$\$?|\\\(|\\\[|\\ce\{|⟶|⟵|⟷|⇌|⇄|⟹|⇒|→|←|↔/i.test(value);
+  return /<(sup|sub|frac|b)>|\$\$?|\\\(|\\\[|\\ce\{|⟶|⟵|⟷|⇌|⇄|⟹|⇒|→|←|↔/i.test(value);
 }
 
 function ChemTagButtons(props: {
@@ -347,6 +371,13 @@ function ChemTagButtons(props: {
           className="rounded-md border border-slate-700 bg-slate-900/70 px-2 py-0.5 text-[11px] text-slate-200 hover:border-cyan-500/70 hover:text-cyan-200"
         >
           x₂
+        </button>
+        <button
+          type="button"
+          onClick={() => applyBoldTag(targetRef.current, value, onChange)}
+          className="rounded-md border border-slate-700 bg-slate-900/70 px-2 py-0.5 text-[11px] font-bold text-slate-200 hover:border-cyan-500/70 hover:text-cyan-200"
+        >
+          B
         </button>
         <button
           type="button"
@@ -3751,31 +3782,34 @@ export function AdminAnandPage() {
                     >
                       Paste image
                     </button>
-                    {manualPastedOptionImages[0] && (
-                      <div className="group relative">
-                        <img
-                          src={URL.createObjectURL(manualPastedOptionImages[0])}
-                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                          alt={manualPastedOptionImages[0].name}
-                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setManualPastedOptionImages((prev) => {
-                              const next = [...prev];
-                              next[0] = null;
-                              return next;
-                            })
-                          }
-                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
-                          title="Remove image"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
                   </div>
+                  {manualPastedOptionImages[0] && (
+                    <div className="group relative mt-2">
+                      <img
+                        src={URL.createObjectURL(manualPastedOptionImages[0])}
+                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                        alt={manualPastedOptionImages[0]?.name}
+                        className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManualPastedOptionImages((prev) => {
+                            const next = [...prev];
+                            next[0] = null;
+                            return next;
+                          })
+                        }
+                        className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                      <span className="text-[11px] text-slate-400 truncate block mt-1">
+                        {manualPastedOptionImages[0]?.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -3805,31 +3839,34 @@ export function AdminAnandPage() {
                     >
                       Paste image
                     </button>
-                    {manualPastedOptionImages[1] && (
-                      <div className="group relative">
-                        <img
-                          src={URL.createObjectURL(manualPastedOptionImages[1])}
-                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                          alt={manualPastedOptionImages[1].name}
-                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setManualPastedOptionImages((prev) => {
-                              const next = [...prev];
-                              next[1] = null;
-                              return next;
-                            })
-                          }
-                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
-                          title="Remove image"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
                   </div>
+                  {manualPastedOptionImages[1] && (
+                    <div className="group relative mt-2">
+                      <img
+                        src={URL.createObjectURL(manualPastedOptionImages[1])}
+                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                        alt={manualPastedOptionImages[1]?.name}
+                        className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManualPastedOptionImages((prev) => {
+                            const next = [...prev];
+                            next[1] = null;
+                            return next;
+                          })
+                        }
+                        className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                      <span className="text-[11px] text-slate-400 truncate block mt-1">
+                        {manualPastedOptionImages[1]?.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -3859,31 +3896,34 @@ export function AdminAnandPage() {
                     >
                       Paste image
                     </button>
-                    {manualPastedOptionImages[2] && (
-                      <div className="group relative">
-                        <img
-                          src={URL.createObjectURL(manualPastedOptionImages[2])}
-                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                          alt={manualPastedOptionImages[2].name}
-                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setManualPastedOptionImages((prev) => {
-                              const next = [...prev];
-                              next[2] = null;
-                              return next;
-                            })
-                          }
-                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
-                          title="Remove image"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
                   </div>
+                  {manualPastedOptionImages[2] && (
+                    <div className="group relative mt-2">
+                      <img
+                        src={URL.createObjectURL(manualPastedOptionImages[2])}
+                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                        alt={manualPastedOptionImages[2]?.name}
+                        className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManualPastedOptionImages((prev) => {
+                            const next = [...prev];
+                            next[2] = null;
+                            return next;
+                          })
+                        }
+                        className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                      <span className="text-[11px] text-slate-400 truncate block mt-1">
+                        {manualPastedOptionImages[2]?.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -3913,31 +3953,34 @@ export function AdminAnandPage() {
                     >
                       Paste image
                     </button>
-                    {manualPastedOptionImages[3] && (
-                      <div className="group relative">
-                        <img
-                          src={URL.createObjectURL(manualPastedOptionImages[3])}
-                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                          alt={manualPastedOptionImages[3].name}
-                          className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setManualPastedOptionImages((prev) => {
-                              const next = [...prev];
-                              next[3] = null;
-                              return next;
-                            })
-                          }
-                          className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
-                          title="Remove image"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
                   </div>
+                  {manualPastedOptionImages[3] && (
+                    <div className="group relative mt-2">
+                      <img
+                        src={URL.createObjectURL(manualPastedOptionImages[3])}
+                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                        alt={manualPastedOptionImages[3]?.name}
+                        className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManualPastedOptionImages((prev) => {
+                            const next = [...prev];
+                            next[3] = null;
+                            return next;
+                          })
+                        }
+                        className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-rose-400/70 bg-slate-950/90 text-xs text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                      <span className="text-[11px] text-slate-400 truncate block mt-1">
+                        {manualPastedOptionImages[3]?.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               )}
