@@ -194,7 +194,7 @@ function renderMath(content: string, key: string, displayMode: boolean) {
         key={key}
         className={
           displayMode
-            ? "block w-full max-w-full my-2 overflow-hidden [&_.katex-display]:my-0 [&_.katex-display]:max-w-full [&_.katex-display]:overflow-hidden [&_.katex]:max-w-full"
+            ? "inline-block align-middle max-w-full overflow-hidden [&_.katex-display]:inline-block [&_.katex-display]:my-0 [&_.katex-display]:max-w-full [&_.katex-display]:overflow-hidden [&_.katex]:max-w-full"
             : "inline-block align-middle max-w-full overflow-hidden [&_.katex]:max-w-full"
         }
         dangerouslySetInnerHTML={{ __html: html }}
