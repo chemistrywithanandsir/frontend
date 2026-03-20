@@ -652,6 +652,7 @@ export function AdminAnandPage() {
     exam_code?: string;
     year?: number;
     chapter_name?: string;
+    chemistry_type?: string | null;
     question_number?: number;
     question_text: string;
     answer_type?: "MCQ" | "NUMERIC" | "MULTI" | string;
@@ -947,6 +948,7 @@ export function AdminAnandPage() {
           exam_code: (q.exam_code as string | undefined) || selectedExamLabel,
           year: q.year,
           chapter_name: q.chapter_name,
+          chemistry_type: q.chemistry_type ?? null,
           question_number: q.question_number,
           question_text: q.question_text,
           answer_type: q.answer_type,
@@ -1269,6 +1271,18 @@ export function AdminAnandPage() {
     manualMultiCorrect,
     manualSolution,
   ]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const prevBodyBg = document.body.style.backgroundColor;
+    const prevRootBg = document.documentElement.style.backgroundColor;
+    document.documentElement.style.backgroundColor = "#020617";
+    document.body.style.backgroundColor = "#020617";
+    return () => {
+      document.documentElement.style.backgroundColor = prevRootBg;
+      document.body.style.backgroundColor = prevBodyBg;
+    };
+  }, []);
 
   // Scroll targets for main admin sections
   const pyqSectionRef = useRef<HTMLDivElement | null>(null);
@@ -2407,7 +2421,7 @@ export function AdminAnandPage() {
       {userDashboardPanel === "pyq" && (
         <section
           ref={pyqSectionRef}
-          className="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 md:p-8"
+          className="min-h-[70vh] bg-slate-900/80 border border-slate-700 rounded-2xl p-6 md:p-8"
         >
           <button
             type="button"
@@ -2755,6 +2769,101 @@ export function AdminAnandPage() {
                 </div>
 
                 <PyqTextModeToggle mode={pyqTextMode} onChange={setPyqTextMode} compact />
+
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                  <label className="flex flex-col gap-1 text-xs text-slate-200">
+                    <span className="font-semibold uppercase tracking-wide">Exam</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. NEET / JEE Main / CBSE"
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      value={pyqEditingQuestion.exam_code || ""}
+                      onChange={(e) =>
+                        setPyqEditingQuestion((prev) =>
+                          prev ? { ...prev, exam_code: e.target.value } : prev
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-xs text-slate-200">
+                    <span className="font-semibold uppercase tracking-wide">Year</span>
+                    <input
+                      type="number"
+                      placeholder="e.g. 2024"
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      value={pyqEditingQuestion.year ?? ""}
+                      onChange={(e) =>
+                        setPyqEditingQuestion((prev) => {
+                          if (!prev) return prev;
+                          const value = e.target.value;
+                          return {
+                            ...prev,
+                            year: value === "" ? undefined : Number(value),
+                          };
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-xs text-slate-200">
+                    <span className="font-semibold uppercase tracking-wide">Chapter</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Haloalkanes"
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      value={pyqEditingQuestion.chapter_name || ""}
+                      onChange={(e) =>
+                        setPyqEditingQuestion((prev) =>
+                          prev ? { ...prev, chapter_name: e.target.value } : prev
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-xs text-slate-200">
+                    <span className="font-semibold uppercase tracking-wide">Chemistry type</span>
+                    <select
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      value={pyqEditingQuestion.chemistry_type || ""}
+                      onChange={(e) =>
+                        setPyqEditingQuestion((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                chemistry_type: e.target.value || null,
+                              }
+                            : prev
+                        )
+                      }
+                    >
+                      <option value="">Not set</option>
+                      <option value="Organic">Organic</option>
+                      <option value="Inorganic">Inorganic</option>
+                      <option value="Physical">Physical</option>
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-xs text-slate-200">
+                    <span className="font-semibold uppercase tracking-wide">Question no.</span>
+                    <input
+                      type="number"
+                      min={1}
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      value={pyqEditingQuestion.question_number ?? ""}
+                      onChange={(e) =>
+                        setPyqEditingQuestion((prev) => {
+                          if (!prev) return prev;
+                          const value = e.target.value;
+                          return {
+                            ...prev,
+                            question_number: value === "" ? undefined : Number(value),
+                          };
+                        })
+                      }
+                    />
+                  </label>
+                </div>
 
                 <div className="space-y-3">
                   <label className="flex flex-col gap-1 text-xs text-slate-200">
@@ -3278,7 +3387,18 @@ export function AdminAnandPage() {
                           question_text: pyqEditingQuestion.question_text,
                           answer_type: pyqEditingQuestion.answer_type || "MCQ",
                           solution_text: pyqEditingQuestion.solution_text || null,
+                          exam_code: pyqEditingQuestion.exam_code || "",
+                          chapter_name: pyqEditingQuestion.chapter_name || "",
+                          chemistry_type: pyqEditingQuestion.chemistry_type || null,
                         };
+
+                        if (typeof pyqEditingQuestion.year === "number") {
+                          payload.year = pyqEditingQuestion.year;
+                        }
+
+                        if (typeof pyqEditingQuestion.question_number === "number") {
+                          payload.question_number = pyqEditingQuestion.question_number;
+                        }
 
                         if (pyqEditingQuestion.answer_type === "NUMERIC") {
                           payload.correct_answer = (pyqEditingQuestion.correct_answer || "").trim();
@@ -4957,6 +5077,101 @@ export function AdminAnandPage() {
 
                   <PyqTextModeToggle mode={pyqTextMode} onChange={setPyqTextMode} compact />
 
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                    <label className="flex flex-col gap-1 text-xs text-slate-200">
+                      <span className="font-semibold uppercase tracking-wide">Exam</span>
+                      <input
+                        type="text"
+                        placeholder="e.g. NEET / JEE Main / CBSE"
+                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        value={pyqEditingQuestion.exam_code || ""}
+                        onChange={(e) =>
+                          setPyqEditingQuestion((prev) =>
+                            prev ? { ...prev, exam_code: e.target.value } : prev
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs text-slate-200">
+                      <span className="font-semibold uppercase tracking-wide">Year</span>
+                      <input
+                        type="number"
+                        placeholder="e.g. 2024"
+                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        value={pyqEditingQuestion.year ?? ""}
+                        onChange={(e) =>
+                          setPyqEditingQuestion((prev) => {
+                            if (!prev) return prev;
+                            const value = e.target.value;
+                            return {
+                              ...prev,
+                              year: value === "" ? undefined : Number(value),
+                            };
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs text-slate-200">
+                      <span className="font-semibold uppercase tracking-wide">Chapter</span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Haloalkanes"
+                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        value={pyqEditingQuestion.chapter_name || ""}
+                        onChange={(e) =>
+                          setPyqEditingQuestion((prev) =>
+                            prev ? { ...prev, chapter_name: e.target.value } : prev
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs text-slate-200">
+                      <span className="font-semibold uppercase tracking-wide">Chemistry type</span>
+                      <select
+                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        value={pyqEditingQuestion.chemistry_type || ""}
+                        onChange={(e) =>
+                          setPyqEditingQuestion((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  chemistry_type: e.target.value || null,
+                                }
+                              : prev
+                          )
+                        }
+                      >
+                        <option value="">Not set</option>
+                        <option value="Organic">Organic</option>
+                        <option value="Inorganic">Inorganic</option>
+                        <option value="Physical">Physical</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs text-slate-200">
+                      <span className="font-semibold uppercase tracking-wide">Question no.</span>
+                      <input
+                        type="number"
+                        min={1}
+                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        value={pyqEditingQuestion.question_number ?? ""}
+                        onChange={(e) =>
+                          setPyqEditingQuestion((prev) => {
+                            if (!prev) return prev;
+                            const value = e.target.value;
+                            return {
+                              ...prev,
+                              question_number: value === "" ? undefined : Number(value),
+                            };
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+
                   <div className="space-y-3">
                     <label className="flex flex-col gap-1 text-xs text-slate-200">
                       <span className="font-semibold uppercase tracking-wide">
@@ -5124,7 +5339,18 @@ export function AdminAnandPage() {
                             answer_type: pyqEditingQuestion.answer_type || "MCQ",
                             solution_text:
                               pyqEditingQuestion.solution_text || null,
+                            exam_code: pyqEditingQuestion.exam_code || "",
+                            chapter_name: pyqEditingQuestion.chapter_name || "",
+                            chemistry_type: pyqEditingQuestion.chemistry_type || null,
                           };
+
+                          if (typeof pyqEditingQuestion.year === "number") {
+                            payload.year = pyqEditingQuestion.year;
+                          }
+
+                          if (typeof pyqEditingQuestion.question_number === "number") {
+                            payload.question_number = pyqEditingQuestion.question_number;
+                          }
 
                           if (
                             pyqEditingQuestion.answer_type === "NUMERIC" &&
